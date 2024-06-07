@@ -13,15 +13,30 @@ pipeline {
     }
 
     stages {
-        stage('Install Azure CLI') {
+         stage('Install Azure CLI') {
             steps {
                 script {
                     sh '''
-                    curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+                    # Update the repository information
+                    sudo apt-get update
+
+                    # Install prerequisite packages
+                    sudo apt-get install -y ca-certificates curl apt-transport-https lsb-release gnupg
+
+                    # Download and install the Microsoft signing key
+                    curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /usr/share/keyrings/azure-archive-keyring.gpg > /dev/null
+
+                    # Add the Azure CLI software repository
+                    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/azure-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/azure-cli.list
+
+                    # Update the repository information and install the azure-cli package
+                    sudo apt-get update
+                    sudo apt-get install -y azure-cli
                     '''
                 }
             }
         }
+
         stage('Build Docker Image') {
             steps {
                 script {
