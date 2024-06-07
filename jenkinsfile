@@ -11,6 +11,8 @@ pipeline {
         CONTAINER_GROUP_NAME = 'groupjk'  // Remplacez par le nom de votre groupe de conteneurs ACI
         CONTAINER_NAME = 'staticwebapp'  // Remplacez par le nom de votre conteneur ACI
     }
+
+     stages {
 stage('Install Azure CLI') {
             steps {
                 script {
@@ -27,7 +29,6 @@ stage('Install Azure CLI') {
                 }
             }
         }
-     stages {
         stage('Build Docker Image') {
             steps {
                 script {
