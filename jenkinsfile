@@ -39,7 +39,7 @@ pipeline {
                 }
             }
         }
-
+       }
         
         stage('Get ACI URL') {
             steps {
