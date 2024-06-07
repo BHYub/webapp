@@ -69,8 +69,8 @@ dockerImage = docker.build("${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}")
             steps {
                 script {
                   
-
-                  sh' az container create --resource-group ${RESOURCE_GROUP} --registry-login-server ${ACR_NAME}.azurecr.io --registry-username $ACR_USERNAME --registry-password ACR_PASSWORD --name ${IMAGE_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_GROUP_NAME} --ports 80 '
+                     sh' az acr login --name $ACR_NAME '
+                  sh' az container create --resource-group ${RESOURCE_GROUP} --registry-login-server ${ACR_NAME}.azurecr.io --registry-username $ACR_USERNAME --registry-password $ACR_PASSWORD --name ${IMAGE_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_GROUP_NAME} --ports 80 '
                   }
                 }
             }
