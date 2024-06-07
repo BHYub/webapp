@@ -70,7 +70,7 @@ dockerImage = docker.build("${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}")
                   }
                 }
             }
-        }
+       
         
          stage('Get ACI URL') {
             steps {
@@ -83,10 +83,11 @@ dockerImage = docker.build("${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}")
             }
         }
     }
+ 
         
     post {
         always {
             cleanWs()
         }
     }
-
+}
