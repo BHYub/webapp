@@ -28,34 +28,19 @@ pipeline {
                         withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
                             sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID'
                             sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
+                        docker.withRegistry("https://${ACR_NAME}.azurecr.io", "azureContainerRegistry:acrCredentialsId") {
+                        dockerImage.push("${IMAGE_TAG}")
+                        sh '''
+                        az container create --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_NAME} --ports 5555:80
+                        '''
+                             
                         }
                     }
                 }
             }
         }
 
-        stage('Push Docker Image to ACR') {
-            steps {
-                script {
-                    docker.withRegistry("https://${ACR_NAME}.azurecr.io", "azureContainerRegistry:acrCredentialsId") {
-                        dockerImage.push("${IMAGE_TAG}")
-                    }
-                }
-            }
-        }
-
-        stage('Deploy to ACI') {
-            steps {
-                script {
-                    docker.image('mcr.microsoft.com/azure-cli').inside {
-                        sh '''
-                        az container create --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_NAME} --ports 5555:80
-                        '''
-                    }
-                }
-            }
-        }
-
+        
         stage('Get ACI URL') {
             steps {
                 script {
