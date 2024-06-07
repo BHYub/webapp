@@ -54,7 +54,7 @@ sudo yum install  -y azure-cli
             }
         }
     }
-}
+
 
 
         stage('Deploy to ACI') {
