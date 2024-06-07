@@ -12,31 +12,7 @@ pipeline {
         CONTAINER_NAME = 'staticwebapp'  // Remplacez par le nom de votre conteneur ACI
     }
 
-    stages {
-         stage('Install Azure CLI') {
-            steps {
-                script {
-                    sh '''
-                    # Update the repository information
-                    sudo apt-get update
-
-                    # Install prerequisite packages
-                    sudo apt-get install -y ca-certificates curl apt-transport-https lsb-release gnupg
-
-                    # Download and install the Microsoft signing key
-                    curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /usr/share/keyrings/azure-archive-keyring.gpg > /dev/null
-
-                    # Add the Azure CLI software repository
-                    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/azure-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/azure-cli.list
-
-                    # Update the repository information and install the azure-cli package
-                    sudo apt-get update
-                    sudo apt-get install -y azure-cli
-                    '''
-                }
-            }
-        }
-
+     stages {
         stage('Build Docker Image') {
             steps {
                 script {
@@ -47,9 +23,13 @@ pipeline {
 
         stage('Login to Azure') {
             steps {
-                withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
-                    sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID'
-                    sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
+                script {
+                    docker.image('mcr.microsoft.com/azure-cli').inside {
+                        withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
+                            sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID'
+                            sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
+                        }
+                    }
                 }
             }
         }
@@ -67,31 +47,29 @@ pipeline {
         stage('Deploy to ACI') {
             steps {
                 script {
-                    sh '''
-                    az container create \
-                        --resource-group ${RESOURCE_GROUP} \
-                        --name ${CONTAINER_GROUP_NAME} \
-                        --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} \
-                        --dns-name-label ${CONTAINER_GROUP_NAME} \
-                        --ports 5555:80 \
-                        --environment-variables 'PORT=80'
-                    '''
+                    docker.image('mcr.microsoft.com/azure-cli').inside {
+                        sh '''
+                        az container create --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_NAME} --ports 5555:80
+                        '''
+                    }
                 }
             }
         }
-        
-         stage('Get ACI URL') {
+
+        stage('Get ACI URL') {
             steps {
                 script {
-                    def dnsNameLabel = sh(script: "az container show --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --query 'ipAddress.fqdn' -o tsv", returnStdout: true).trim()
-                    def url = "http://${dnsNameLabel}"
-                    echo "Application URL: ${url}"
-                    currentBuild.description = "<a href='${url}'>Application URL</a>"
+                    docker.image('mcr.microsoft.com/azure-cli').inside {
+                        def dnsNameLabel = sh(script: "az container show --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --query 'ipAddress.fqdn' -o tsv", returnStdout: true).trim()
+                        def url = "http://${dnsNameLabel}"
+                        echo "Application URL: ${url}"
+                        currentBuild.description = "<a href='${url}'>Application URL</a>"
+                    }
                 }
             }
         }
     }
-        
+
     post {
         always {
             cleanWs()
