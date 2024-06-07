@@ -13,23 +13,6 @@ pipeline {
     }
 
      stages {
-        stage('Install Azure CLI and Docker') {
-            agent {
-                docker {
-                    image 'mcr.microsoft.com/azure-cli'
-                    args '-u root'  // Run as root to install packages
-                }
-            }
-            steps {
-                sh '''
-                apt-get update && apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-                curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-                add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-                apt-get update && apt-get install -y docker-ce
-                '''
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
                 script {
@@ -61,13 +44,19 @@ pipeline {
             steps {
                 script {
                     sh '''
-                    az container create --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_NAME} --ports 80
+                    az container create \
+                        --resource-group ${RESOURCE_GROUP} \
+                        --name ${CONTAINER_GROUP_NAME} \
+                        --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} \
+                        --dns-name-label ${CONTAINER_GROUP_NAME} \
+                        --ports 5555:80 \
+                        --environment-variables 'PORT=80'
                     '''
                 }
             }
         }
-
-        stage('Get ACI URL') {
+        
+         stage('Get ACI URL') {
             steps {
                 script {
                     def dnsNameLabel = sh(script: "az container show --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --query 'ipAddress.fqdn' -o tsv", returnStdout: true).trim()
@@ -78,7 +67,7 @@ pipeline {
             }
         }
     }
-
+        
     post {
         always {
             cleanWs()
