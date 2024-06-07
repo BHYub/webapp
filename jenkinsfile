@@ -58,6 +58,7 @@ dockerImage = docker.build("${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}")
         sh ' docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:$IMAGE_TAG . '
 
         sh' docker push ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}'
+        sh' docker pull $ACR_NAME.azurecr.io/$IMAGE_NAME:$IMAGE_TAG '
             }
         }
     }
