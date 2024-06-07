@@ -66,17 +66,8 @@ dockerImage = docker.build("${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}")
         stage('Deploy to ACI') {
             steps {
                 script {
-                  sh' az container create --resource-group ${RESOURCE_GROUP --name ${IMAGE_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_GROUP_NAME} --ports 5555:80 '
-
-                    //sh '''
-                    az container create \
-                        --resource-group ${RESOURCE_GROUP} \
-                        --name ${IMAGE_NAME} \
-                        --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} \
-                        --dns-name-label ${CONTAINER_GROUP_NAME} \
-                        --ports 5555:80 \
-                        --environment-variables 'PORT=80'
-                    '''
+                  sh' az container create --resource-group ${RESOURCE_GROUP} --name ${IMAGE_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_GROUP_NAME} --ports 5555:80 '
+                  }
                 }
             }
         }
