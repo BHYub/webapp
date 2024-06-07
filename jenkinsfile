@@ -13,6 +13,23 @@ pipeline {
     }
 
      stages {
+        stage('Install Azure CLI and Docker') {
+            agent {
+                docker {
+                    image 'mcr.microsoft.com/azure-cli'
+                    args '-u root'  // Run as root to install packages
+                }
+            }
+            steps {
+                sh '''
+                apt-get update && apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+                curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+                add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+                apt-get update && apt-get install -y docker-ce
+                '''
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
@@ -23,33 +40,40 @@ pipeline {
 
         stage('Login to Azure') {
             steps {
+                withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
+                    sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID'
+                    sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
+                }
+            }
+        }
+
+        stage('Push Docker Image to ACR') {
+            steps {
                 script {
-                    docker.image('mcr.microsoft.com/azure-cli').inside {
-                        withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
-                            sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID'
-                            sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
-                        docker.withRegistry("https://${ACR_NAME}.azurecr.io", "azureContainerRegistry:acrCredentialsId") {
+                    docker.withRegistry("https://${ACR_NAME}.azurecr.io", "azureContainerRegistry:acrCredentialsId") {
                         dockerImage.push("${IMAGE_TAG}")
-                        sh '''
-                        az container create --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_NAME} --ports 5555:80
-                        '''
-                             
-                        }
                     }
                 }
             }
         }
-       }
-        
+
+        stage('Deploy to ACI') {
+            steps {
+                script {
+                    sh '''
+                    az container create --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_NAME} --ports 80
+                    '''
+                }
+            }
+        }
+
         stage('Get ACI URL') {
             steps {
                 script {
-                    docker.image('mcr.microsoft.com/azure-cli').inside {
-                        def dnsNameLabel = sh(script: "az container show --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --query 'ipAddress.fqdn' -o tsv", returnStdout: true).trim()
-                        def url = "http://${dnsNameLabel}"
-                        echo "Application URL: ${url}"
-                        currentBuild.description = "<a href='${url}'>Application URL</a>"
-                    }
+                    def dnsNameLabel = sh(script: "az container show --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --query 'ipAddress.fqdn' -o tsv", returnStdout: true).trim()
+                    def url = "http://${dnsNameLabel}"
+                    echo "Application URL: ${url}"
+                    currentBuild.description = "<a href='${url}'>Application URL</a>"
                 }
             }
         }
