@@ -55,7 +55,8 @@ dockerImage = docker.build("${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}")
         sh' az acr repository list --name $ACR_NAME --output table'
         //sh' docker login ${ACR_NAME}.azurecr.io -u $ACR_USERNAME -p $ACR_PASSWORD '
         sh' az acr login --name $ACR_NAME '
-    
+        sh ' docker build -t $ACR_NAME.azurecr.io/$IMAGE_NAME:$IMAGE_TAG . '
+
         sh' docker push ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}'
             }
         }
@@ -66,7 +67,7 @@ dockerImage = docker.build("${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}")
         stage('Deploy to ACI') {
             steps {
                 script {
-                  sh' az role assignment create --assignee $AZURE_CREDENTIALS_ID --scope /subscriptions/${AZUR_SUBSCRIPTION_ID}/resourceGroups/${RESOURCE_GROUP_NAME}/providers/Microsoft.ContainerRegistry/registries/$ACR_NAME --role AcrPull '
+                  
 
                   sh' az container create --resource-group ${RESOURCE_GROUP} --registry-login-server ${ACR_NAME}.azurecr.io --registry-username $ACR_USERNAME --registry-password ACR_PASSWORD --name ${IMAGE_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_GROUP_NAME} --ports 80 '
                   }
