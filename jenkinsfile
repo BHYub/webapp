@@ -47,14 +47,15 @@ sudo yum install  -y azure-cli
         }
 
         stage('Push Docker Image to ACR') {
-            steps {
-                script {
-                    docker.withRegistry("https://${ACR_NAME}.azurecr.io", "azureContainerRegistry:acrCredentialsId") {
-                        dockerImage.push("${IMAGE_TAG}")
-                    }
-                }
+    steps {
+        script {
+            docker.withRegistry("https://${ACR_NAME}.azurecr.io", "${AZURE_CREDENTIALS_ID}") {
+                dockerImage.push("${IMAGE_TAG}")
             }
         }
+    }
+}
+
 
         stage('Deploy to ACI') {
             steps {
