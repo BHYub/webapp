@@ -10,7 +10,7 @@ pipeline {
         ACR_USERNAME = 'ACR_USERNAME'
         IMAGE_NAME = 'staticwebapp'  // Remplacez par le nom de votre image Docker
         IMAGE_TAG = 'latest'
-        CONTAINER_GROUP_NAME = 'groupjk'  // Remplacez par le nom de votre groupe de conteneurs ACI
+        CONTAINER_GROUP_NAME = 'staticwebapp'  // Remplacez par le nom de votre groupe de conteneurs ACI
         CONTAINER_NAME = 'staticwebapp'  // Remplacez par le nom de votre conteneur ACI
     }
 
@@ -70,7 +70,7 @@ dockerImage = docker.build("${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}")
                 script {
                   
                      sh' az acr login --name $ACR_NAME '
-                  sh' az container create --resource-group ${RESOURCE_GROUP} --registry-login-server ${ACR_NAME}.azurecr.io --registry-username $ACR_USERNAME --registry-password $ACR_PASSWORD --name ${IMAGE_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_GROUP_NAME} --ports 80 '
+                  sh' az container create --resource-group ${RESOURCE_GROUP} --registry-login-server ${ACR_NAME}.azurecr.io --registry-username ${ACR_USERNAME} --registry-password ${ACR_PASSWORD} --name ${IMAGE_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_GROUP_NAME} --ports 80 '
                   }
                 }
             }
