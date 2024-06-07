@@ -5,7 +5,9 @@ pipeline {
         AZURE_CREDENTIALS_ID = 'azure-credentials-id'  // Remplacez par votre ID de credentials Azure dans Jenkins
         AZURE_SUBSCRIPTION_ID = 'azure-subscription-id'  // Remplacez par votre ID de souscription Azure
         RESOURCE_GROUP = 'deploy-jenkins'  // Remplacez par le nom de votre groupe de ressources Azure
-        ACR_NAME = 'deploy2jenkins'  // Remplacez par le nom de votre Azure Container Registry
+        ACR_NAME = 'deploy2jenkins'// Remplacez par le nom de votre Azure Container Registry
+        ACR_PASSWORD = 'ACR_PASSWORD'
+        ACR_USERNAME = 'ACR_USERNAME'
         IMAGE_NAME = 'staticwebapp'  // Remplacez par le nom de votre image Docker
         IMAGE_TAG = 'latest'
         CONTAINER_GROUP_NAME = 'groupjk'  // Remplacez par le nom de votre groupe de conteneurs ACI
@@ -50,8 +52,10 @@ dockerImage = docker.build("${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}")
         stage('Push Docker Image to ACR') {
     steps {
         script {
-sh'az acr repository list --name $ACR_NAME --output table'
-           //sh' docker push ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}'
+        sh' az acr repository list --name $ACR_NAME --output table'
+        sh' docker login <ACR_NAME>.azurecr.io -u $ACR_USERNAME -p $ACR_PASSWORD '
+    
+        sh' docker push ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}'
             }
         }
     }
