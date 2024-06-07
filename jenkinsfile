@@ -1,0 +1,76 @@
+pipeline {
+    agent any
+
+    environment {
+        AZURE_CREDENTIALS_ID = 'azure-credentials-id'  // Remplacez par votre ID de credentials Azure dans Jenkins
+        AZURE_SUBSCRIPTION_ID = 'azure-subscription-id'  // Remplacez par votre ID de souscription Azure
+        RESOURCE_GROUP = 'deploy-jenkins'  // Remplacez par le nom de votre groupe de ressources Azure
+        ACR_NAME = 'deploy2jenkins'  // Remplacez par le nom de votre Azure Container Registry
+        IMAGE_NAME = 'staticwebapp'  // Remplacez par le nom de votre image Docker
+        IMAGE_TAG = 'latest'
+        CONTAINER_GROUP_NAME = 'groupjk'  // Remplacez par le nom de votre groupe de conteneurs ACI
+        CONTAINER_NAME = 'staticwebapp'  // Remplacez par le nom de votre conteneur ACI
+    }
+
+    stages {
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build("${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}")
+                }
+            }
+        }
+
+        stage('Login to Azure') {
+            steps {
+                withCredentials([azureServicePrincipal(credentialsId: AZURE_CREDENTIALS_ID)]) {
+                    sh 'az login --service-principal -u $AZURE_CLIENT_ID -p $AZURE_CLIENT_SECRET --tenant $AZURE_TENANT_ID'
+                    sh 'az account set --subscription $AZURE_SUBSCRIPTION_ID'
+                }
+            }
+        }
+
+        stage('Push Docker Image to ACR') {
+            steps {
+                script {
+                    docker.withRegistry("https://${ACR_NAME}.azurecr.io", "azureContainerRegistry:acrCredentialsId") {
+                        dockerImage.push("${IMAGE_TAG}")
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to ACI') {
+            steps {
+                script {
+                    sh '''
+                    az container create \
+                        --resource-group ${RESOURCE_GROUP} \
+                        --name ${CONTAINER_GROUP_NAME} \
+                        --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} \
+                        --dns-name-label ${CONTAINER_GROUP_NAME} \
+                        --ports 5555:80 \
+                        --environment-variables 'PORT=80'
+                    '''
+                }
+            }
+        }
+        
+         stage('Get ACI URL') {
+            steps {
+                script {
+                    def dnsNameLabel = sh(script: "az container show --resource-group ${RESOURCE_GROUP} --name ${CONTAINER_NAME} --query 'ipAddress.fqdn' -o tsv", returnStdout: true).trim()
+                    def url = "http://${dnsNameLabel}"
+                    echo "Application URL: ${url}"
+                    currentBuild.description = "<a href='${url}'>Application URL</a>"
+                }
+            }
+        }
+    }
+        
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
