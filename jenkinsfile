@@ -69,9 +69,9 @@ dockerImage = docker.build("${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG}")
             steps {
                 script {
                   sh 'docker login -u jsp222 -p jPdGMrzlEoozN7BhEqd/19DcGc/hER11FEyKIfmwLK+ACRBWT3lW deploy2jenkins.azurecr.io '
-                   sh' docker run -p 5555:80 -d --name webapp ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} '
+                   //sh' docker run -p 5555:80 -d --name webapp ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} '
                    //  sh' az acr login --name $ACR_NAME '
-                 // sh' az container create --resource-group ${RESOURCE_GROUP} --registry-login-server ${ACR_NAME}.azurecr.io --registry-username ${ACR_USERNAME} --registry-password ${ACR_PASSWORD} --name ${IMAGE_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_GROUP_NAME} --ports 80 '
+                 sh' az container create --resource-group ${RESOURCE_GROUP}  --name ${IMAGE_NAME} --image ${ACR_NAME}.azurecr.io/${IMAGE_NAME}:${IMAGE_TAG} --dns-name-label ${CONTAINER_GROUP_NAME} --ports 80 '
                   }
                 }
             }
