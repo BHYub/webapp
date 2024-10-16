@@ -3,8 +3,6 @@ name: Block Merge Without Shortcut Link
 on:
   pull_request:
     types: [opened, edited, synchronize]
-    branches:
-      - main
 
 jobs:
   check-shortcut-link:
