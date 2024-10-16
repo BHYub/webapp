@@ -1,0 +1,27 @@
+name: Block Merge Without Shortcut Link
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  check-shortcut-link:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for Shortcut link
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          REPO=${{ github.repository }}
+          TOKEN=${{ secrets.GITHUB_TOKEN }}
+          # Attente des commentaires 
+            sleep 120
+          # Récupérer les commentaires de la PR
+          COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+
+          # Vérifier si le commentaire du bot est présent
+          if ! echo "$COMMENTS" | grep -q '"body":.*This pull request has been linked to'; then
+             
+            echo "This PR does not have a linked Shortcut story."
+            exit 1
+          fi
