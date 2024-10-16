@@ -21,6 +21,7 @@ jobs:
           SHORTCUT_BOT_USERNAME="BHYub"  
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+          echo $COMMENTS
           
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
