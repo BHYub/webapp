@@ -1,3 +1,4 @@
+
 name: Block Merge Without Shortcut Link
 
 on:
@@ -9,7 +10,7 @@ on:
 
 jobs:
   check-shortcut-link:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  #[self-hosted,runner-builder]
     steps:
       - name: Check for Shortcut link
         run: |
@@ -17,11 +18,9 @@ jobs:
           PR_NUMBER=${{ github.event.pull_request.number }}
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
-          SHORTCUT_BOT_USERNAME="BHYub"  # Remplacez par le nom d'utilisateur exact du bot
-
+          SHORTCUT_BOT_USERNAME="BHYub"  
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
-
           
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
