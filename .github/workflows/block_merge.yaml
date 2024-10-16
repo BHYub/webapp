@@ -14,7 +14,7 @@ jobs:
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
           # Attente des commentaires 
-            sleep 120
+            sleep 15
           # Récupérer les commentaires de la PR
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
