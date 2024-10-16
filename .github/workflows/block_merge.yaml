@@ -1,8 +1,8 @@
 name: Block Merge Without Shortcut Link
 
 on:
-  pull_request:
-    types: [opened, edited, synchronize]
+  pull_request_review:
+    types: [submitted]
 
 jobs:
   check-shortcut-link:
@@ -10,18 +10,18 @@ jobs:
     steps:
       - name: Check for Shortcut link
         run: |
+          # Env variables 
           PR_NUMBER=${{ github.event.pull_request.number }}
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
-          # Attente des commentaires 
-            sleep 15
-          # Récupérer les commentaires de la PR
+          SHORTCUT_BOT_USERNAME="BHYub"  
+
+          # get comments of PR
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
 
-          # Vérifier si le commentaire du bot est présent
-          if ! echo "$COMMENTS" | grep -q '"body":.*This pull request has been linked to'; then
-             
+          # Shortcut bot comment verification
+          if ! echo "$COMMENTS" | grep -q "\"user\": {\"login\": \"$SHORTCUT_BOT_USERNAME\".*\"body\":.*This pull request has been linked to"; then
             echo "This PR does not have a linked Shortcut story."
             exit 1
           fi
