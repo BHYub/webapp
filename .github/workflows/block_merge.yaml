@@ -23,8 +23,7 @@ jobs:
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
 
           # Vérifier si le commentaire du bot est présent
-          if echo "$COMMENTS" | grep -q "\"user\": {\"login\": \"$SHORTCUT_BOT_USERNAME\""; then
-            if echo "$COMMENTS" | grep -q "This pull request has been linked to"; then
+          if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
               echo "Valid Shortcut link found."
             else
               echo "This PR does not have a linked Shortcut story."
