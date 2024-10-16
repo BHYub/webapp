@@ -16,7 +16,7 @@ jobs:
           PR_NUMBER=${{ github.event.pull_request.number }}
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
-          SHORTCUT_BOT_USERNAME="BHYub"  # Remplacez par le nom d'utilisateur exact du bot
+          SHORTCUT_BOT_USERNAME="shortcut-integration"  # Remplacez par le nom d'utilisateur exact du bot
 
           # Récupérer les commentaires de la PR
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
@@ -24,12 +24,8 @@ jobs:
 
           # Vérifier si le commentaire du bot est présent
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
-              echo "Valid Shortcut link found."
-            else
-              echo "This PR does not have a linked Shortcut story."
-              exit 1
-            fi
+            echo "Valid Shortcut link found."
           else
-            echo "No comment from the Shortcut bot found."
+            echo "This PR does not have a linked Shortcut story."
             exit 1
           fi
