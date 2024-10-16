@@ -16,7 +16,7 @@ jobs:
           PR_NUMBER=${{ github.event.pull_request.number }}
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
-          SHORTCUT_BOT_USERNAME="shortcut-integration"  # Remplacez par le nom d'utilisateur exact du bot
+          SHORTCUT_BOT_USERNAME="BHYub"  # Remplacez par le nom d'utilisateur exact du bot
 
           # Récupérer les commentaires de la PR
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
