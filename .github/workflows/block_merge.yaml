@@ -10,7 +10,7 @@ on:
     #types: [submitted]   #triggers on review and approval 
 jobs:
   check-shortcut-link:
-    runs-on: [self-hosted,runner-builder]
+    runs-on: ubuntu:latest
     steps:
       - name: Check for Shortcut link in comment
         if: github.event_name == 'issue_comment'  # a sleep to give the shortcut bot time to comment
