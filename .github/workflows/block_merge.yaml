@@ -1,36 +1,51 @@
-name: Block Merge Without Shortcut Link
+
+name: Block Merge Without Shortcut Link tests
 
 on:
+  issue_comment:
+    types: [created] #triggers on adding a comment
   pull_request:
-     types: [opened, edited, synchronize]
-  #_review:
-    #types: [submitted]
-
+    types: [opened, edited, synchronize] 
+  #pull_request_review:  
+    #types: [submitted]   #triggers on review and approval 
 jobs:
   check-shortcut-link:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted,runner-builder]
     steps:
-      - name: Check for Shortcut link
+      - name: Check for Shortcut link in comment
+        if: github.event_name == 'issue_comment'  # a sleep to give the shortcut bot time to comment
         run: |
-          # Variables d'environnement
+          sleep 30
+           PR_NUMBER=${{ github.event.issue.number }}
+          REPO=${{ github.repository }}
+          TOKEN=${{ secrets.GITHUB_TOKEN }}
+          SHORTCUT_BOT_USERNAME="BHYub" 
+          COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+            
+          echo $COMMENTS
+          
+          if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
+            echo "Valid Shortcut link found."
+          else
+            echo "This PR does not have a linked Shortcut story."
+            exit 1
+          fi
+      - name: Check for Shortcut link in pull request
+        if: github.event_name == 'pull_request' 
+        run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
-          SHORTCUT_BOT_USERNAME="BHYub"  # Remplacez par le nom d'utilisateur exact du bot
-
-          # Récupérer les commentaires de la PR
+          SHORTCUT_BOT_USERNAME="BHYub" 
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
-
-          # Vérifier si le commentaire du bot est présent
-          if echo "$COMMENTS" | grep -q "\"user\": {\"login\": \"$SHORTCUT_BOT_USERNAME\""; then
-            if echo "$COMMENTS" | grep -q "This pull request has been linked to"; then
-              echo "Valid Shortcut link found."
-            else
-              echo "This PR does not have a linked Shortcut story."
-              exit 1
-            fi
+            
+          echo $COMMENTS  
+          
+          if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
+            echo "Valid Shortcut link found."
           else
-            echo "No comment from the Shortcut bot found."
+            echo "This PR does not have a linked Shortcut story."
             exit 1
           fi
