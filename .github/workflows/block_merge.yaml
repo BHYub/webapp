@@ -1,4 +1,4 @@
-name: Block Merge Without Shortcut Link
+name: Block Merge Without Shortcut Link tests
 
 on:
   issue_comment:
@@ -12,10 +12,11 @@ jobs:
   check-shortcut-link:
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write
+      checks: write
+      
     steps:
       - name: Check for Shortcut link in comment
-        if: github.event_name == 'issue_comment' # a sleep to give the shortcut bot time to comment
+        if: github.event_name == 'issue_comment'  # a sleep to give the shortcut bot time to comment
         run: |
           sleep 10
           PR_NUMBER=${{ github.event.issue.number }}
@@ -24,34 +25,24 @@ jobs:
           SHORTCUT_BOT_USERNAME="BHYub" 
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
-
+            
           echo $COMMENTS
 
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
-
-            # Fetch the current PR details
-            PR_DETAILS=$(curl -s -H "Authorization: token $TOKEN" \
-              "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER")
-              
-            CURRENT_DESCRIPTION=$(echo "$PR_DETAILS" | jq -r '.body')
-
-            # Check if the description already contains the phrase to avoid duplicates
-            if [[ "$CURRENT_DESCRIPTION" != *"This pull request has been linked to"* ]]; then
-              # Update the PR description
-              UPDATED_DESCRIPTION="$CURRENT_DESCRIPTION\n\nThis pull request has been linked to a Shortcut story."
-              curl -s -X PATCH -H "Authorization: token $TOKEN" \
-                -H "Content-Type: application/json" \
-                -d "{\"body\": \"$UPDATED_DESCRIPTION\"}" \
-                "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"
-              echo "PR description updated with Shortcut link message."
-            else
-              echo "PR description already contains the Shortcut link message."
-            fi
+            curl -s -X POST -H "Authorization: token $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"state": "success", "description": "Shortcut link validated", "context": "Shortcut Link Check"}' \
+              "https://api.github.com/repos/$REPO/statuses/${{ github.sha }}"
           else
             echo "This PR does not have a linked Shortcut story."
+            curl -s -X POST -H "Authorization: token $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"state": "failure", "description": "No Shortcut link found", "context": "Shortcut Link Check"}' \
+              "https://api.github.com/repos/$REPO/statuses/${{ github.sha }}"
             exit 1
           fi
+          
       - name: Check for Shortcut link in pull request
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
         run: |
@@ -62,11 +53,19 @@ jobs:
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
             
-          echo $COMMENTS  
-          
+          echo $COMMENTS
+
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
+            curl -s -X POST -H "Authorization: token $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"state": "success", "description": "Shortcut link validated", "context": "Shortcut Link Check"}' \
+              "https://api.github.com/repos/$REPO/statuses/${{ github.sha }}"
           else
             echo "This PR does not have a linked Shortcut story."
+            curl -s -X POST -H "Authorization: token $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d '{"state": "failure", "description": "No Shortcut link found", "context": "Shortcut Link Check"}' \
+              "https://api.github.com/repos/$REPO/statuses/${{ github.sha }}"
             exit 1
           fi
