@@ -4,8 +4,6 @@ name: Block Merge Without Shortcut Link tests
 on:
   issue_comment:
     types: [created] #triggers on adding a comment
-  pull_request:
-    types: [opened, edited, synchronize] 
   pull_request_review:  
     types: [submitted]   #triggers on review and approval 
 jobs:
