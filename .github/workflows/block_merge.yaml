@@ -1,64 +1,33 @@
-
-name: Block Merge Without Shortcut Link tests
+name: Block Merge Without Shortcut Link
 
 on:
-  issue_comment:
-    types: [created] #triggers on adding a comment
-    branches:
-      - main
-    
   pull_request:
-    types: [opened, edited, synchronize] 
-  #pull_request_review:  
-    #types: [submitted]   #triggers on review and approval 
+    types: [opened, edited, synchronize]  # Déclenchement lors de la création, modification ou synchronisation de la PR
+  pull_request_review:
+    types: [submitted]  # Déclenchement lors de l'approbation de la PR
+  issue_comment:
+    types: [created]    # Déclenchement lors de l'ajout d'un commentaire
+
 jobs:
   check-shortcut-link:
     runs-on: ubuntu-latest
-    permissions:
-      statuses: write
     steps:
-      - name: Check for Shortcut link in comment
-        if: github.event_name == 'issue_comment'  # a sleep to give the shortcut bot time to comment
+      - name: Sleep for 30 seconds
+        run: sleep 30s  # Pause de 30 secondes pour les PR
+
+      - name: Check for Shortcut link
         run: |
-          sleep 10
-           PR_NUMBER=${{ github.event.issue.number }}
-          REPO=${{ github.repository }}
-          TOKEN=${{ secrets.GITHUB_TOKEN }}
-          SHORTCUT_BOT_USERNAME="BHYub" 
-          COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
-            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
-            
-          echo $COMMENTS
-          
-          if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
-            echo "Valid Shortcut link found."
-          # Update commit status
-           curl -X POST \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/${{ github.repository }}/check-runs/${{ github.run_id }} \
-          -d '{
-            "name": "Block Merge Without Shortcut Link tests",
-            "head_sha": "${{ github.sha }}",
-            "status": "completed",
-            "conclusion": "success"
-          }'
-          else
-            echo "This PR does not have a linked Shortcut story."
-            exit 1
-          fi
-      - name: Check for Shortcut link in pull request
-        if: github.event_name == 'pull_request' 
-        run: |
+          # Variables d'environnement
           PR_NUMBER=${{ github.event.pull_request.number }}
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
-          SHORTCUT_BOT_USERNAME="BHYub" 
+          SHORTCUT_BOT_USERNAME="shortcut-integration"  # Remplacez par le nom d'utilisateur exact du bot
+
+          # Récupérer les commentaires de la PR
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
-            
-          echo $COMMENTS  
-          
+
+          # Vérifier si le commentaire du bot est présent
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
           else
