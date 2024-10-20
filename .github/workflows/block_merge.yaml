@@ -11,6 +11,8 @@ on:
 jobs:
   check-shortcut-link:
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
     steps:
       - name: Check for Shortcut link in comment
         if: github.event_name == 'issue_comment'  # a sleep to give the shortcut bot time to comment
@@ -49,3 +51,10 @@ jobs:
             echo "This PR does not have a linked Shortcut story."
             exit 1
           fi
+      - name: Force update the pull request
+        run: |
+          PR_NUMBER=${{ github.event.pull_request.number }}
+          REPO=${{ github.repository }}
+          TOKEN=${{ secrets.GITHUB_TOKEN }}
+          curl -X POST -H "Authorization: token $TOKEN" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/update"
