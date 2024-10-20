@@ -17,9 +17,9 @@ jobs:
         run: |
           # Variables d'environnement
           if github.event_name == 'issue_comment'
-          PR_NUMBER=${{ github.event.issue.number }}
+            PR_NUMBER=${{ github.event.issue.number }}
           else
-          PR_NUMBER=${{ github.event.pull_request.number }}
+            PR_NUMBER=${{ github.event.pull_request.number }}
           fi
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
