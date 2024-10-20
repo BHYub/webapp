@@ -21,12 +21,14 @@ jobs:
           # Get the correct PR number and SHA
           if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
             PR_NUMBER=${{ github.event.issue.number }}
+            PR_SHA=$(curl -s -H "Authorization: token $TOKEN" \
+              "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" | jq -r .head.sha)
           else
             PR_NUMBER=${{ github.event.pull_request.number }}
+            PR_SHA=${{ github.event.pull_request.head.sha }}
           fi
 
-          # Get the SHA for the current PR
-          PR_SHA=${{ github.event.pull_request.head.sha }}
+          echo "Using PR SHA: $PR_SHA"
 
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
