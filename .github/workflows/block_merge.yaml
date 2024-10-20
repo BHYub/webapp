@@ -45,7 +45,7 @@ jobs:
               curl -X PATCH \
               -H "Authorization: token $TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
-               "https://api.github.com/repos/$REPO/check-runs/$OLD_CHECK_RUN_ID" \
+               https://api.github.com/repos/$REPO/check-runs/$OLD_CHECK_RUN_ID \
               -d '{
                "status": "completed",
                "conclusion": "skipped"
