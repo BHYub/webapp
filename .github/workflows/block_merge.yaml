@@ -14,29 +14,16 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - name: Check for Shortcut link in comment
-        if: github.event_name == 'issue_comment'  # a sleep to give the shortcut bot time to comment
-        run: |
-          sleep 10
-          PR_NUMBER=${{ github.event.issue.number }}
-          REPO=${{ github.repository }}
-          TOKEN=${{ secrets.GITHUB_TOKEN }}
-          SHORTCUT_BOT_USERNAME="BHYub" 
-          COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
-            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
-            
-          echo $COMMENTS
-          
-          if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
-            echo "Valid Shortcut link found."
-          else
-            echo "This PR does not have a linked Shortcut story."
-            exit 1
-          fi
+     
       - name: Check for Shortcut link in pull request
-        if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
+      
         run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
+          if github.event_name == 'issue_comment'; then
+            PR_NUMBER=${{ github.event.issue.number }}
+          else
+            PR_NUMBER=${{ github.event.pull_request.number }}
+          fi
+          
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
           SHORTCUT_BOT_USERNAME="BHYub" 
@@ -51,23 +38,4 @@ jobs:
             echo "This PR does not have a linked Shortcut story."
             exit 1
           fi
-      - name: Update PR Check Status
-        if: github.event_name == 'issue_comment'
-        run: |
-          PR_NUMBER=${{ github.event.issue.number }}
-          REPO=${{ github.repository }}
-          TOKEN=${{ secrets.GITHUB_TOKEN }}
-    
-    # Update the check status using GitHub API
-          curl -X POST -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/$REPO/check-runs \
-          -d '{
-           "name": "Block Merge Without Shortcut Link tests",
-           "head_sha": "${{ github.sha }}",  # Use the latest commit SHA
-           "status": "completed",
-           "conclusion": "success",  # Or "failure" based on your conditions
-           "output": {
-             "title": "Check updated",
-             "summary": "The PR is linked to a Shortcut story."
-           }
-        }'
+  
