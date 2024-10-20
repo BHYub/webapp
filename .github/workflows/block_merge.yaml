@@ -27,16 +27,16 @@ jobs:
           
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
-          curl -X POST \
-           -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-           -H "Accept: application/vnd.github.v3+json" \
-           https://api.github.com/repos/${{ github.repository }}/check-runs \
-           -d '{
-            "name": "Block Merge Without Shortcut Link tests",
-            "head_sha": "${{ github.sha }}",
-            "status": "completed",
-            "conclusion": "success"
-          }'
+          # Update commit status
+            curl -X POST \
+              -H "Authorization: token $TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }} \
+              -d '{
+                "state": "success",
+                "description": "Valid Shortcut link found.",
+                "context": "Block Merge Without Shortcut Link tests"
+              }'
           else
             echo "This PR does not have a linked Shortcut story."
             exit 1
