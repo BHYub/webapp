@@ -11,62 +11,40 @@ on:
 jobs:
   check-shortcut-link:
     runs-on: ubuntu-latest
-    permissions:
-      checks: write
-      statuses: write
-      
     steps:
       - name: Check for Shortcut link in comment
-        if: github.event_name == 'issue_comment'  # a sleep to give the shortcut bot time to comment
+        if: github.event_name == 'issue_comment'
         run: |
           sleep 10
           PR_NUMBER=${{ github.event.issue.number }}
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
-          SHORTCUT_BOT_USERNAME="BHYub" 
+          SHORTCUT_BOT_USERNAME="BHYub"
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
-            
+
           echo $COMMENTS
 
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
-            curl -s -X POST -H "Authorization: token $TOKEN" \
-              -H "Content-Type: application/json" \
-              -d '{"state": "success", "description": "Shortcut link validated", "context": "Shortcut Link Check"}' \
-              "https://api.github.com/repos/$REPO/statuses/${{ github.sha }}"
           else
             echo "This PR does not have a linked Shortcut story."
-            curl -s -X POST -H "Authorization: token $TOKEN" \
-              -H "Content-Type: application/json" \
-              -d '{"state": "failure", "description": "No Shortcut link found", "context": "Shortcut Link Check"}' \
-              "https://api.github.com/repos/$REPO/statuses/${{ github.sha }}"
             exit 1
-          fi
-          
+
       - name: Check for Shortcut link in pull request
         if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review'
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
-          SHORTCUT_BOT_USERNAME="BHYub" 
+          SHORTCUT_BOT_USERNAME="BHYub"
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
-            
+
           echo $COMMENTS
 
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
-            curl -s -X POST -H "Authorization: token $TOKEN" \
-              -H "Content-Type: application/json" \
-              -d '{"state": "success", "description": "Shortcut link validated", "context": "Shortcut Link Check"}' \
-              "https://api.github.com/repos/$REPO/statuses/${{ github.sha }}"
           else
             echo "This PR does not have a linked Shortcut story."
-            curl -s -X POST -H "Authorization: token $TOKEN" \
-              -H "Content-Type: application/json" \
-              -d '{"state": "failure", "description": "No Shortcut link found", "context": "Shortcut Link Check"}' \
-              "https://api.github.com/repos/$REPO/statuses/${{ github.sha }}"
             exit 1
-          fi
