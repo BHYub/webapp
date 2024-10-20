@@ -36,16 +36,33 @@ jobs:
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
             # Update the check run with the correct SHA
-            curl -X POST \
-              -H "Authorization: token $TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/${{ github.repository }}/check-runs \
-              -d '{
-                "name": "testing2",
-                "head_sha": "'"$PR_SHA"'",
-                "status": "completed",
-                "conclusion": "success"
-              }'
+             CHECK_RUNS=$(curl -s -H "Authorization: token $TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/commits/$PR_SHA/check-runs")
+            OLD_CHECK_RUN_ID=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "testing2") | .id')
+
+            if [ "$OLD_CHECK_RUN_ID" != "null" ]; then
+              echo "Updating existing check run ID: $OLD_CHECK_RUN_ID"
+              curl -X PATCH \
+                -H "Authorization: token $TOKEN" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/${{ github.repository }}/check-runs/$OLD_CHECK_RUN_ID" \
+                -d '{
+                  "status": "completed",
+                  "conclusion": "success"
+                }'
+            else
+              echo "Creating a new check run."
+              curl -X POST \
+                -H "Authorization: token $TOKEN" \
+                -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/${{ github.repository }}/check-runs" \
+                -d '{
+                  "name": "testing2",
+                  "head_sha": "'"$PR_SHA"'",
+                  "status": "completed",
+                  "conclusion": "success"
+                }'
+            fi
           else
             echo "This PR does not have a linked Shortcut story."
             exit 1
