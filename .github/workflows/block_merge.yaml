@@ -14,36 +14,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Vérifier si le commentaire est du bot ou, si c'est une PR, vérifier les commentaires
+      # Step 1: Vérifier si la PR a un commentaire du bot
       - name: Check if PR is linked to a Shortcut story
         run: |
-          # Cas où c'est un commentaire ajouté à la PR
-          if [ -n "${{ github.event.comment }}" ]; then
-            COMMENT_USER=$(echo "${{ github.event.comment.user.login }}")
-            COMMENT_BODY=$(echo "${{ github.event.comment.body }}")
-
-            # Vérifier si le commentaire est du bot et contient "this PR is linked"
-            if [[ "$COMMENT_USER" == "shortcut-integration[bot]" && "$COMMENT_BODY" == *"this PR is linked"* ]]; then
-              echo "PR is linked to a Shortcut story by the bot."
-            else
-              echo "PR is not linked to a Shortcut story. Please link this PR to a story."
-              exit 1  # Fail l'action si le commentaire n'est pas correct
-            fi
-          fi
-
           # Cas où c'est une Pull Request (ouverture, modification, etc.)
-          if [ -n "${{ github.event.pull_request }}" ]; then
-            PR_NUMBER=$(echo "${{ github.event.pull_request.number }}")
+          PR_NUMBER=$(echo "${{ github.event.pull_request.number || github.event.issue.number }}")
 
-            # Utilisation de l'API GitHub pour récupérer les commentaires de la PR
-            COMMENTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments")
+          # Utilisation de l'API GitHub pour récupérer tous les commentaires de la PR
+          COMMENTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments")
 
-            # Vérifier si le commentaire du bot existe
-            if echo "$COMMENTS" | grep -q '"user": {"login": "shortcut-integration[bot]"}' && echo "$COMMENTS" | grep -q "this PR is linked"; then
-              echo "PR is linked to a Shortcut story."
-            else
-              echo "PR is not linked to a Shortcut story. Please link this PR to a story."
-              exit 1  # Fail the action si la PR n'est pas liée
-            fi
+          # Vérifier si un commentaire du bot shortcut-integration[bot] existe
+          if echo "$COMMENTS" | grep -q '"user": {"login": "BHYub"}' && echo "$COMMENTS" | grep -q "this PR is linked"; then
+            echo "PR is linked to a Shortcut story."
+          else
+            echo "PR is not linked to a Shortcut story. Please link this PR to a story."
+            exit 1  # Fail the action si la PR n'est pas liée
           fi
