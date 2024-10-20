@@ -10,7 +10,7 @@ jobs:
   testing2:
     runs-on: ubuntu-latest
     permissions:
-      pull-requests: write
+      checks: write
     steps:
      
       - name: testing3
@@ -30,6 +30,18 @@ jobs:
           
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
+                curl -X POST -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github.v3+json" \
+                "https://api.github.com/repos/$REPO/check-runs" \
+               -d '{
+              "name": "Block Merge Without Shortcut Link tests",
+              "head_sha": "'"$LATEST_COMMIT_SHA"'",
+              "status": "completed",
+              "conclusion": "success",
+              "output": {
+                "title": "Check updated",
+                "summary": "The PR is linked to a Shortcut story."
+                        }
+                  }'
           else
             echo "This PR does not have a linked Shortcut story."
             exit 1
