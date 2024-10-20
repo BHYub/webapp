@@ -2,6 +2,8 @@
 name: Block Merge Without Shortcut Link tests
 
 on:
+  check_run:
+    types: [completed]
   issue_comment:
     types: [created] #triggers on adding a comment
   pull_request:
