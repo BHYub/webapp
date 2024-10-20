@@ -12,8 +12,6 @@ jobs:
   check-shortcut-link:
     runs-on: ubuntu-latest
     steps:
-      - name: Sleep for 30 seconds
-        run: sleep 30s  # Pause de 30 secondes pour les PR
 
       - name: Check for Shortcut link
         run: |
