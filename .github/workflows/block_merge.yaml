@@ -51,11 +51,23 @@ jobs:
             echo "This PR does not have a linked Shortcut story."
             exit 1
           fi
-      - name: Force update the pull request
+      - name: Update PR Check Status
+        if: github.event_name == 'issue_comment'
         run: |
           PR_NUMBER=${{ github.event.issue.number }}
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
-          curl -X PATCH -H "Authorization: token $TOKEN" \
-            -d '{"state": "open"}' \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"
+    
+    # Update the check status using GitHub API
+          curl -X POST -H "Authorization: token $TOKEN" -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/$REPO/check-runs \
+          -d '{
+           "name": "Block Merge Without Shortcut Link tests",
+           "head_sha": "${{ github.sha }}",  # Use the latest commit SHA
+           "status": "completed",
+           "conclusion": "success",  # Or "failure" based on your conditions
+           "output": {
+             "title": "Check updated",
+             "summary": "The PR is linked to a Shortcut story."
+           }
+        }'
