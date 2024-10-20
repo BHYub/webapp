@@ -1,5 +1,5 @@
 
-name: Block Merge Without Shortcut Link tests
+name: testing1
 
 on:
   issue_comment:
@@ -7,13 +7,13 @@ on:
   pull_request_review:  
     types: [submitted]   #triggers on review and approval 
 jobs:
-  check-shortcut-link:
+  testing2:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
     steps:
      
-      - name: Check for Shortcut link in pull request
+      - name: testing3
       
         run: |
          
