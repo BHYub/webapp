@@ -1,38 +1,49 @@
-name: Block Merge Without Shortcut Link
+name: Check PR Linked to Shortcut
 
+# Déclenchement de l'action sur les événements pull_request et issue_comment
 on:
   pull_request:
-    types: [opened, edited, synchronize]  # Déclenchement lors de la création, modification ou synchronisation de la PR
-  pull_request_review:
-    types: [submitted]  # Déclenchement lors de l'approbation de la PR
+    types: [opened, edited, synchronize]
   issue_comment:
-    types: [created]    # Déclenchement lors de l'ajout d'un commentaire
+    types: [created]
 
 jobs:
-  check-shortcut-link:
+  check-shortcut:
+    # S'assure que c'est bien une PR dans le cas d'un commentaire
+    if: github.event.issue.pull_request != null || github.event.pull_request != null
     runs-on: ubuntu-latest
+
     steps:
-
-      - name: Check for Shortcut link
+      # Step 1: Vérifier si le commentaire est du bot ou, si c'est une PR, vérifier les commentaires
+      - name: Check if PR is linked to a Shortcut story
         run: |
-          # Variables d'environnement
-          if github.event_name == 'issue_comment'
-            PR_NUMBER=${{ github.event.issue.number }}
-          else
-            PR_NUMBER=${{ github.event.pull_request.number }}
+          # Cas où c'est un commentaire ajouté à la PR
+          if [ -n "${{ github.event.comment }}" ]; then
+            COMMENT_USER=$(echo "${{ github.event.comment.user.login }}")
+            COMMENT_BODY=$(echo "${{ github.event.comment.body }}")
+
+            # Vérifier si le commentaire est du bot et contient "this PR is linked"
+            if [[ "$COMMENT_USER" == "shortcut-integration[bot]" && "$COMMENT_BODY" == *"this PR is linked"* ]]; then
+              echo "PR is linked to a Shortcut story by the bot."
+            else
+              echo "PR is not linked to a Shortcut story. Please link this PR to a story."
+              exit 1  # Fail l'action si le commentaire n'est pas correct
+            fi
           fi
-          REPO=${{ github.repository }}
-          TOKEN=${{ secrets.GITHUB_TOKEN }}
-          SHORTCUT_BOT_USERNAME="BHYub"  # Remplacez par le nom d'utilisateur exact du bot
 
-          # Récupérer les commentaires de la PR
-          COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
-            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+          # Cas où c'est une Pull Request (ouverture, modification, etc.)
+          if [ -n "${{ github.event.pull_request }}" ]; then
+            PR_NUMBER=$(echo "${{ github.event.pull_request.number }}")
 
-          # Vérifier si le commentaire du bot est présent
-          if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
-            echo "Valid Shortcut link found."
-          else
-            echo "This PR does not have a linked Shortcut story."
-            exit 1
+            # Utilisation de l'API GitHub pour récupérer les commentaires de la PR
+            COMMENTS=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/repos/${{ github.repository }}/issues/$PR_NUMBER/comments")
+
+            # Vérifier si le commentaire du bot existe
+            if echo "$COMMENTS" | grep -q '"user": {"login": "shortcut-integration[bot]"}' && echo "$COMMENTS" | grep -q "this PR is linked"; then
+              echo "PR is linked to a Shortcut story."
+            else
+              echo "PR is not linked to a Shortcut story. Please link this PR to a story."
+              exit 1  # Fail the action si la PR n'est pas liée
+            fi
           fi
