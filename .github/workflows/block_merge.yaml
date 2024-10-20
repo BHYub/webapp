@@ -57,4 +57,4 @@ jobs:
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
           curl -X POST -H "Authorization: token $TOKEN" \
-            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER/update"
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/update"
