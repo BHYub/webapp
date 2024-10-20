@@ -14,6 +14,8 @@ on:
 jobs:
   check-shortcut-link:
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
     steps:
       - name: Check for Shortcut link in comment
         if: github.event_name == 'issue_comment'  # a sleep to give the shortcut bot time to comment
@@ -31,13 +33,16 @@ jobs:
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
           # Update commit status
-            curl -X PATCH \
-              -H "Authorization: token $TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/${{ github.repository }}/pulls/$PR_NUMBER \
-              -d '{
-                "body": "⚠️ This pull request does not have a linked Shortcut story. Please add a link to a valid Shortcut story."
-              }'
+            curl -X POST \
+          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/check-runs \
+          -d '{
+            "name": "Block Merge Without Shortcut Link tests",
+            "head_sha": "${{ github.sha }}",
+            "status": "completed",
+            "conclusion": "success"
+          }'
           else
             echo "This PR does not have a linked Shortcut story."
             exit 1
