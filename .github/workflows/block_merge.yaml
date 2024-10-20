@@ -56,5 +56,6 @@ jobs:
           PR_NUMBER=${{ github.event.issue.number }}
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
-          curl -X POST -H "Authorization: token $TOKEN" \
-            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/update"
+          curl -X PATCH -H "Authorization: token $TOKEN" \
+            -d '{"state": "open"}' \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"
