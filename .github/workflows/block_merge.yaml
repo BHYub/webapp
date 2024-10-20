@@ -16,7 +16,11 @@ jobs:
       - name: Check for Shortcut link
         run: |
           # Variables d'environnement
+          if github.event_name == 'issue_comment
+          PR_NUMBER=${{ github.event.issue.number }}
+          else
           PR_NUMBER=${{ github.event.pull_request.number }}
+          fi
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
           SHORTCUT_BOT_USERNAME="BHYub"  # Remplacez par le nom d'utilisateur exact du bot
