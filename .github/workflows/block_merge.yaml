@@ -4,6 +4,8 @@ name: Block Merge Without Shortcut Link tests
 on:
   issue_comment:
     types: [created] #triggers on adding a comment
+    branches:
+      - BHYub-patch-1
   pull_request:
     types: [opened, edited, synchronize] 
   #pull_request_review:  
