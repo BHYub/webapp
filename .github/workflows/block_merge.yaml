@@ -18,11 +18,9 @@ jobs:
       - name: Check for Shortcut link in pull request
       
         run: |
-          if github.event_name == 'issue_comment'; then
-            PR_NUMBER=${{ github.event.issue.number }}
-          else
-            PR_NUMBER=${{ github.event.pull_request.number }}
-          fi
+         
+          PR_NUMBER=${{ github.event.issue.number }}
+          
           
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
