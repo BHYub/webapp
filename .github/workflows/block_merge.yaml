@@ -1,4 +1,4 @@
-name: Block Merge Without Shortcut Link tests
+name: testing1
 
 on:
   issue_comment:
@@ -7,12 +7,12 @@ on:
     types: [opened, edited, synchronize] 
 
 jobs:
-  check-shortcut-link:
+  testing2:
     runs-on: ubuntu-latest
     permissions:
      checks: write
     steps:
-      - name: Check for Shortcut link in comment or PR
+      - name: testing3
         run: |
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
@@ -21,30 +21,64 @@ jobs:
           # Get the correct PR number and SHA
           if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
             PR_NUMBER=${{ github.event.issue.number }}
+            PR_SHA=$(curl -s -H "Authorization: token $TOKEN" \
+              "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" | jq -r .head.sha)
           else
             PR_NUMBER=${{ github.event.pull_request.number }}
+            PR_SHA=${{ github.event.pull_request.head.sha }}
           fi
 
-          # Get the SHA for the current PR
-          PR_SHA=${{ github.event.pull_request.head.sha }}
+          echo "Using PR SHA: $PR_SHA"
+          
+          # getting last check run
+             CHECK_RUNS=$(curl -s -H "Authorization: token $TOKEN" "https://api.github.com/repos/${REPO}/commits/${PR_SHA}/check-runs")
+             
+             OLD_CHECK_RUN_ID=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "testing2") | .id')
 
-          COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
+                  
+                 COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+
 
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
-            # Update the check run with the correct SHA
-            curl -X POST \
-              -H "Authorization: token $TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/${{ github.repository }}/check-runs \
-              -d '{
-                "name": "Shortcut Link Check",
-                "head_sha": "'"$PR_SHA"'",
-                "status": "completed",
-                "conclusion": "success"
-              }'
+            
+              CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/$OLD_CHECK_RUN_ID"
+               echo "Constructed check run update URL: $CHECK_RUN_UPDATE_URL"
+
+               echo "Updating the check run with ID $OLD_CHECK_RUN_ID"
+               curl -X PATCH \
+                 -H "Authorization: token $TOKEN" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                  "$CHECK_RUN_UPDATE_URL" \
+                 -d '{
+               "status": "completed",
+               "conclusion": "success"
+                 }'
+            
+          # curl -X POST \
+           #   -H "Authorization: token $TOKEN" \
+            #  -H "Accept: application/vnd.github.v3+json" \
+            #  https://api.github.com/repos/${{ github.repository }}/check-runs \
+             # -d '{
+              #  "name": "testing2",
+               # "head_sha": "'"$PR_SHA"'",
+                #"status": "completed",
+                #"conclusion": "success"
+              #}'
           else
             echo "This PR does not have a linked Shortcut story."
+             CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/$OLD_CHECK_RUN_ID"
+               echo "Constructed check run update URL: $CHECK_RUN_UPDATE_URL"
+
+               echo "Updating the check run with ID $OLD_CHECK_RUN_ID"
+               curl -X PATCH \
+                 -H "Authorization: token $TOKEN" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                  "$CHECK_RUN_UPDATE_URL" \
+                 -d '{
+               "status": "completed",
+               "conclusion": "failure"
+                 }'
             exit 1
           fi
