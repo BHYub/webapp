@@ -32,22 +32,18 @@ jobs:
 
           COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+             CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/$OLD_CHECK_RUN_ID"
+               echo "Constructed check run update URL: $CHECK_RUN_UPDATE_URL"
 
-            CHECK_RUNS_URL="https://api.github.com/repos/${REPO}/commits/${PR_SHA}/check-runs"
-              echo "Fetching check runs from: $CHECK_RUNS_URL"
-           # Fetch existing check runs
-            CHECK_RUNS=$(curl -s -H "Authorization: token $TOKEN" "$CHECK_RUNS_URL")
-           # Check for existing check run
-            OLD_CHECK_RUN_ID=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "testing2") | .id')
-            echo "Updating existing check run ID: $OLD_CHECK_RUN_ID"
-            curl -X PATCH \
-             -H "Authorization: token $TOKEN" \
-             -H "Accept: application/vnd.github.v3+json" \
-             "https://api.github.com/repos/${REPO}/check-runs/$OLD_CHECK_RUN_ID" \
-             -d '{
-            "status": "completed",
-          "conclusion": "skipped"
-              }'
+               echo "Updating the check run with ID $OLD_CHECK_RUN_ID"
+               curl -X PATCH \
+                 -H "Authorization: token $TOKEN" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                  "$CHECK_RUN_UPDATE_URL" \
+                 -d '{
+               "status": "completed",
+               "conclusion": "skipped"
+                 }'
 
 
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
