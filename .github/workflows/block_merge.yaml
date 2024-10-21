@@ -42,7 +42,8 @@ jobs:
 
             if [ "$OLD_CHECK_RUN_ID" != "null" ]; then
               echo "Updating existing check run ID: $OLD_CHECK_RUN_ID"
-              curl -X PATCH \
+              curl -L \ 
+              -X PATCH \
               -H "Authorization: token $TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
                https://api.github.com/repos/$REPO/check-runs/$OLD_CHECK_RUN_ID \
