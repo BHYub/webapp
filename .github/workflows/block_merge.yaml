@@ -23,11 +23,11 @@ jobs:
             PR_NUMBER=${{ github.event.issue.number }}
             PR_SHA=$(curl -s -H "Authorization: token $TOKEN" \
               "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" | jq -r .head.sha)
-            TESTILOG=${{ github.event.issue }}
+            TESTILOG=${{ github.event.issue.pull_request.base.ref }}
           else
             PR_NUMBER=${{ github.event.pull_request.number }}
             PR_SHA=${{ github.event.pull_request.head.sha }}
-            TESTILOG=${{ github.event.pull_request}}
+            TESTILOG=${{ github.event.pull_request.ref.base}}
           fi
 
          
