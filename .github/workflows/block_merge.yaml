@@ -30,13 +30,44 @@ jobs:
 
           echo "Using PR SHA: $PR_SHA"
           
-          # skiping last check run
+          # getting last check run
              CHECK_RUNS=$(curl -s -H "Authorization: token $TOKEN" "https://api.github.com/repos/${REPO}/commits/${PR_SHA}/check-runs")
              
              OLD_CHECK_RUN_ID=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "testing2") | .id')
 
-          
-          
+                  
+                 COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
+            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+
+
+          if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
+            echo "Valid Shortcut link found."
+            
+              CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/$OLD_CHECK_RUN_ID"
+               echo "Constructed check run update URL: $CHECK_RUN_UPDATE_URL"
+
+               echo "Updating the check run with ID $OLD_CHECK_RUN_ID"
+               curl -X PATCH \
+                 -H "Authorization: token $TOKEN" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                  "$CHECK_RUN_UPDATE_URL" \
+                 -d '{
+               "status": "completed",
+               "conclusion": "success"
+                 }'
+            
+          # curl -X POST \
+           #   -H "Authorization: token $TOKEN" \
+            #  -H "Accept: application/vnd.github.v3+json" \
+            #  https://api.github.com/repos/${{ github.repository }}/check-runs \
+             # -d '{
+              #  "name": "testing2",
+               # "head_sha": "'"$PR_SHA"'",
+                #"status": "completed",
+                #"conclusion": "success"
+              #}'
+          else
+            echo "This PR does not have a linked Shortcut story."
              CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/$OLD_CHECK_RUN_ID"
                echo "Constructed check run update URL: $CHECK_RUN_UPDATE_URL"
 
@@ -47,28 +78,7 @@ jobs:
                   "$CHECK_RUN_UPDATE_URL" \
                  -d '{
                "status": "completed",
-               "conclusion": "skipped"
+               "conclusion": "failure"
                  }'
-                 
-
-
-                 COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
-            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
-
-
-          if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
-            echo "Valid Shortcut link found."
-           curl -X POST \
-              -H "Authorization: token $TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/${{ github.repository }}/check-runs \
-              -d '{
-                "name": "testing2",
-                "head_sha": "'"$PR_SHA"'",
-                "status": "completed",
-                "conclusion": "success"
-              }'
-          else
-            echo "This PR does not have a linked Shortcut story."
             exit 1
           fi
