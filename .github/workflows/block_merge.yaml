@@ -3,89 +3,27 @@ name: testing1
 on:
   issue_comment:
     types: [created] # triggers on adding a comment
-  pull_request:
-    types: [opened, edited, synchronize] 
-    
+  
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
   cancel-in-progress: true  
 
 jobs:
   testing2:
     runs-on: ubuntu-latest
-    permissions:
-     checks: write
     steps:
       - name: testing3
         run: |
           REPO=${{ github.repository }}
           TOKEN=${{ secrets.GITHUB_TOKEN }}
           SHORTCUT_BOT_USERNAME="BHYub" 
-          
-          # Get the correct PR number and SHA
-          if [[ "${{ github.event_name }}" == "issue_comment" ]]; then
-            PR_NUMBER=${{ github.event.issue.number }}
-            PR_SHA=$(curl -s -H "Authorization: token $TOKEN" \
-              "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" | jq -r .head.sha)
-            TESTILOG=${{ github.event.issue.pull_request.base.ref }}
-          else
-            PR_NUMBER=${{ github.event.pull_request.number }}
-            PR_SHA=${{ github.event.pull_request.head.sha }}
-            TESTILOG=${{ github.event.pull_request.ref.base}}
-          fi
-
-         
-            
-          # getting last check run
-             CHECK_RUNS=$(curl -s -H "Authorization: token $TOKEN" "https://api.github.com/repos/${REPO}/commits/${PR_SHA}/check-runs")
-             
-             OLD_CHECK_RUN_ID=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "testing2") | .id')
-
-                  
+          PR_NUMBER=${{ github.event.issue.number }}
                  COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
 
-
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
-            
-              CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/$OLD_CHECK_RUN_ID"
-               echo "Constructed check run update URL: $CHECK_RUN_UPDATE_URL"
-               echo $TESTILOG
-               echo "Updating the check run with ID $OLD_CHECK_RUN_ID"
-               curl -X PATCH \
-                 -H "Authorization: token $TOKEN" \
-                 -H "Accept: application/vnd.github.v3+json" \
-                  "$CHECK_RUN_UPDATE_URL" \
-                 -d '{
-               "status": "completed",
-               "conclusion": "success"
-                 }'
-            echo $TESTILOG
-          # curl -X POST \
-           #   -H "Authorization: token $TOKEN" \
-            #  -H "Accept: application/vnd.github.v3+json" \
-            #  https://api.github.com/repos/${{ github.repository }}/check-runs \
-             # -d '{
-              #  "name": "testing2",
-               # "head_sha": "'"$PR_SHA"'",
-                #"status": "completed",
-                #"conclusion": "success"
-              #}'
           else
             echo "This PR does not have a linked Shortcut story."
-             CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/$OLD_CHECK_RUN_ID"
-               echo "Constructed check run update URL: $CHECK_RUN_UPDATE_URL"
-
-               echo "Updating the check run with ID $OLD_CHECK_RUN_ID"
-               curl -X PATCH \
-                 -H "Authorization: token $TOKEN" \
-                 -H "Accept: application/vnd.github.v3+json" \
-                  "$CHECK_RUN_UPDATE_URL" \
-                 -d '{
-               "status": "completed",
-               "conclusion": "failure"
-                 }'
-                 echo $TESTILOG
             exit 1
           fi
