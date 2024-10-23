@@ -5,6 +5,10 @@ on:
     types: [created] # triggers on adding a comment
   pull_request:
     types: [opened, edited, synchronize] 
+    
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true  
 
 jobs:
   testing2:
@@ -23,13 +27,15 @@ jobs:
             PR_NUMBER=${{ github.event.issue.number }}
             PR_SHA=$(curl -s -H "Authorization: token $TOKEN" \
               "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" | jq -r .head.sha)
+            TESTILOG=${{ github.event.issue.pull_request.base.ref }}
           else
             PR_NUMBER=${{ github.event.pull_request.number }}
             PR_SHA=${{ github.event.pull_request.head.sha }}
+            TESTILOG=${{ github.event.pull_request.ref.base}}
           fi
 
-          echo "Using PR SHA: $PR_SHA"
-          
+         
+            
           # getting last check run
              CHECK_RUNS=$(curl -s -H "Authorization: token $TOKEN" "https://api.github.com/repos/${REPO}/commits/${PR_SHA}/check-runs")
              
@@ -45,7 +51,7 @@ jobs:
             
               CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/$OLD_CHECK_RUN_ID"
                echo "Constructed check run update URL: $CHECK_RUN_UPDATE_URL"
-
+               echo $TESTILOG
                echo "Updating the check run with ID $OLD_CHECK_RUN_ID"
                curl -X PATCH \
                  -H "Authorization: token $TOKEN" \
@@ -55,7 +61,7 @@ jobs:
                "status": "completed",
                "conclusion": "success"
                  }'
-            
+            echo $TESTILOG
           # curl -X POST \
            #   -H "Authorization: token $TOKEN" \
             #  -H "Accept: application/vnd.github.v3+json" \
@@ -80,5 +86,6 @@ jobs:
                "status": "completed",
                "conclusion": "failure"
                  }'
+                 echo $TESTILOG
             exit 1
           fi
