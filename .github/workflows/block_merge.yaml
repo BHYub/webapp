@@ -5,6 +5,10 @@ on:
     types: [created] # triggers on adding a comment
   pull_request:
     types: [opened, edited, synchronize] 
+    
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true  
 
 jobs:
   testing2:
