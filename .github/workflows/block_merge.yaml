@@ -18,8 +18,23 @@ jobs:
           TOKEN=${{ secrets.GITHUB_TOKEN }}
           SHORTCUT_BOT_USERNAME="BHYub" 
           PR_NUMBER=${{ github.event.issue.number }}
-                 COMMENTS=$(curl -s -H "Authorization: token $TOKEN" \
-            "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments")
+          COMMENTS=""
+          PAGE=1
+          PER_PAGE=100
+
+          while :; do
+            RESPONSE=$(curl -s -H "Authorization: token $TOKEN" \
+              "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments?per_page=$PER_PAGE&page=$PAGE")
+             echo "$RESPONSE"
+            # Break if no more comments are returned
+            if [[ $(echo "$RESPONSE" | jq '. | length') -eq 0 ]]; then
+              break
+            fi
+
+            COMMENTS+="$RESPONSE"
+            ((PAGE++))
+          done
+
 
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
