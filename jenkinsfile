@@ -1,6 +1,7 @@
 pipeline {
     agent any
 
+
     environment {
         AZURE_CREDENTIALS_ID = 'azure-credentials-id'  // Remplacez par votre ID de credentials Azure dans Jenkins
         AZURE_SUBSCRIPTION_ID = 'azure-subscription-id'  // Remplacez par votre ID de souscription Azure
