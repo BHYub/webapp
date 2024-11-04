@@ -1,31 +1,70 @@
-name: testing1
+name: Block Merge Without Shortcut Link
 
 on:
   issue_comment:
-    types: [created] # triggers on adding a comment
-  
+    types: [created] # Triggers on adding a comment
+permissions:
+  checks: write
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.issue.number }}
-  cancel-in-progress: true  
-
+  cancel-in-progress: true
+  
 jobs:
-  testing2:
+  check-shortcut-link:
     runs-on: ubuntu-latest
+    env:
+      REPO: ${{ github.repository }}
+      TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      SHORTCUT_BOT_USERNAME: "BHYub"
+      PR_NUMBER: ${{ github.event.issue.number }}
+      EXCLUDED_AUTHOR: "BHYub"
+
     steps:
-      - name: testing3
+      - name: Get PR SHA and Check Old Run
+        id: get_sha_and_old_run
         run: |
-          REPO=${{ github.repository }}
-          TOKEN=${{ secrets.GITHUB_TOKEN }}
-          SHORTCUT_BOT_USERNAME="BHYub" 
-          PR_NUMBER=${{ github.event.issue.number }}
+          PR_SHA=$(curl -s -H "Authorization: token $TOKEN" \
+              "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" | jq -r .head.sha)
+          echo "Using PR SHA: $PR_SHA" # Debug
+          
+          CHECK_RUNS=$(curl -s -H "Authorization: token $TOKEN" \
+            "https://api.github.com/repos/${REPO}/commits/${PR_SHA}/check-runs")
+          
+          OLD_CHECK_RUN_ID=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "check-shortcut-link") | .id')
+          echo "Old Check Run ID: $OLD_CHECK_RUN_ID"
+          echo "old_check_run_id=$OLD_CHECK_RUN_ID" >> $GITHUB_OUTPUT
+          echo "pr_sha=$PR_SHA" >> $GITHUB_OUTPUT
+
+      - name: Get PR Title and Body
+        id: get_pr_details
+        run: |
+          PR_DETAILS=$(curl -s -H "Authorization: token $TOKEN" \
+            "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER")
+            PR_AUTHOR=$(echo "$PR_DETAILS" | jq -r .user.login)   # Get the author of the PR
+            echo "PR Author: $PR_AUTHOR"
+            echo "pr_author=$PR_AUTHOR" >> $GITHUB_OUTPUT
+
+      - name: Get Comments and Verify Comment
+        id: get_comments_and_verify
+        run: |
           COMMENTS=""
           PAGE=1
-          PER_PAGE=100
-
+          PER_PAGE=100 # We can set max comments per page to 100.
+          
+           # Bypassing the check for specific author .
+          
+          if [[ "${{ steps.get_pr_details.outputs.pr_author }}" == "${{ env.EXCLUDED_AUTHOR }}" ]]; then
+            echo "Skipping check for excluded author."
+            echo "status=success" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          
+          # Pagination Logic : a loop that retrieves all comments across multiple pages.
           while :; do
             RESPONSE=$(curl -s -H "Authorization: token $TOKEN" \
               "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments?per_page=$PER_PAGE&page=$PAGE")
-             echo "$RESPONSE"
+
             # Break if no more comments are returned
             if [[ $(echo "$RESPONSE" | jq '. | length') -eq 0 ]]; then
               break
@@ -34,15 +73,56 @@ jobs:
             COMMENTS+="$RESPONSE"
             ((PAGE++))
           done
-
-
+          
+          # Testing if the shortcut bot comment is present. 
           if echo "$COMMENTS" | jq -e ".[] | select(.user.login == \"$SHORTCUT_BOT_USERNAME\") | select(.body | contains(\"This pull request has been linked to\"))" > /dev/null; then
             echo "Valid Shortcut link found."
+            echo "status=success" >> $GITHUB_OUTPUT
+            
+          
           else
+            echo "This PR does not have a linked Shortcut story."
+            echo "status=failure" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update Check Run Status
+        if: steps.get_sha_and_old_run.outputs.old_check_run_id != 'null' && steps.get_sha_and_old_run.outputs.old_check_run_id != ''
+        run: |
+          CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/${{ steps.get_sha_and_old_run.outputs.old_check_run_id }}"
+          curl -X PATCH \
+            -H "Authorization: token $TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$CHECK_RUN_UPDATE_URL" \
+            -d '{
+              "status": "completed",
+              "conclusion": "'"${{ steps.get_comments_and_verify.outputs.status }}"'"
+            }'
+          # Exit with failure if status is failure
+          if [[ "${{ steps.get_comments_and_verify.outputs.status }}" == 'failure' ]]; then
             echo "This PR does not have a linked Shortcut story."
             exit 1
           fi
-      - name: teting4
+
+      - name: Create Check Run
+        if: steps.get_sha_and_old_run.outputs.old_check_run_id == 'null' || steps.get_sha_and_old_run.outputs.old_check_run_id == ''
         run: |
-            echo "ca marche"
-       
+          CHECK_RUN_CREATE_URL="https://api.github.com/repos/${REPO}/check-runs"
+          curl -X POST \
+            -H "Authorization: token $TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "$CHECK_RUN_CREATE_URL" \
+            -d '{
+              "name": "check-shortcut-link",
+              "head_sha": "'"${{ steps.get_sha_and_old_run.outputs.pr_sha }}"'",
+              "status": "completed",
+              "conclusion": "'"${{ steps.get_comments_and_verify.outputs.status }}"'",
+              "output": {
+                "title": "'"${{ github.workflow }}"'",
+                "summary": "'"${{ steps.get_comments_and_verify.outputs.status }}"' for this PR."
+              }
+            }'
+          # Exit with failure if status is failure
+          if [[ "${{ steps.get_comments_and_verify.outputs.status }}" == 'failure' ]]; then
+            echo "This PR does not have a linked Shortcut story."
+            exit 1
+          fi
