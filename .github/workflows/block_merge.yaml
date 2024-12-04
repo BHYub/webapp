@@ -2,7 +2,7 @@ name: Block Merge Without Shortcut Link
 
 on:
   check_run:
-    types: [rerequested]
+    types: [rerequested , requested_action]
   issue_comment:
     types: [created] # Triggers on adding a comment
 permissions:
