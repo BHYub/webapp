@@ -1,13 +1,12 @@
 name: Block Merge Without Shortcut Link
 
-on:
-  push:
-  #check_run:
-    #types: [rerequested , requested_action]
-  issue_comment:
-    types: [created] # Triggers on adding a comment
 permissions:
   checks: write
+on:
+  check_run:
+    types: [created]
+  issue_comment:
+    types: [created] # Triggers on adding a comment
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.issue.number }}
   cancel-in-progress: true
