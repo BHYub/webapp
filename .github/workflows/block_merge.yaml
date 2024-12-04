@@ -4,7 +4,7 @@ permissions:
   checks: write
 on:
   check_run:
-    types: [created, rerequested, completed, requested_action]
+    types: [created , completed]
   issue_comment:
     types: [created] # Triggers on adding a comment
 concurrency:
