@@ -17,7 +17,7 @@ jobs:
       TOKEN: ${{ secrets.GITHUB_TOKEN }}
       SHORTCUT_BOT_USERNAME: "BHYub"
       PR_NUMBER: ${{ github.event.issue.number }}
-      EXCLUDED_AUTHOR: "BHYub"
+      EXCLUDED_AUTHOR: "github-actions[bot]"
 
     steps:
       - name: Get PR SHA and Check Old Run
@@ -35,15 +35,16 @@ jobs:
           echo "old_check_run_id=$OLD_CHECK_RUN_ID" >> $GITHUB_OUTPUT
           echo "pr_sha=$PR_SHA" >> $GITHUB_OUTPUT
 
-      - name: Get PR Title and Body
+      - name: Get PR Details
         id: get_pr_details
         run: |
           PR_DETAILS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER")
-            PR_AUTHOR=$(echo "$PR_DETAILS" | jq -r .user.login)   # Get the author of the PR
-            echo "PR Author: $PR_AUTHOR"
-            echo "pr_author=$PR_AUTHOR" >> $GITHUB_OUTPUT
-
+          PR_AUTHOR=$(echo "$PR_DETAILS" | jq -r .user.login)   # Get the author of the PR
+          
+          echo "PR Author: $PR_AUTHOR"
+          echo "pr_author=$PR_AUTHOR" >> $GITHUB_OUTPUT
+         
       - name: Get Comments and Verify Comment
         id: get_comments_and_verify
         run: |
@@ -51,14 +52,13 @@ jobs:
           PAGE=1
           PER_PAGE=100 # We can set max comments per page to 100.
           
-           # Bypassing the check for specific author .
+          # Bypassing the check for specific author .
           
           if [[ "${{ steps.get_pr_details.outputs.pr_author }}" == "${{ env.EXCLUDED_AUTHOR }}" ]]; then
             echo "Skipping check for excluded author."
             echo "status=success" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
           
           # Pagination Logic : a loop that retrieves all comments across multiple pages.
           while :; do
@@ -79,7 +79,6 @@ jobs:
             echo "Valid Shortcut link found."
             echo "status=success" >> $GITHUB_OUTPUT
             
-          
           else
             echo "This PR does not have a linked Shortcut story."
             echo "status=failure" >> $GITHUB_OUTPUT
