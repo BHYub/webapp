@@ -3,7 +3,8 @@ name: Block Merge Without Shortcut Link
 permissions:
   checks: write
 on:
-  status:
+  branch_protection_rule:
+    types: [created, deleted]
   issue_comment:
     types: [created] # Triggers on adding a comment
 concurrency:
