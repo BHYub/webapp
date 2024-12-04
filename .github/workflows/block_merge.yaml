@@ -3,7 +3,8 @@ name: Block Merge Without Shortcut Link
 permissions:
   checks: write
 on:
-  push:
+  pull_request_review:
+    types: [submitted] 
   issue_comment:
     types: [created] # Triggers on adding a comment
 concurrency:
@@ -21,15 +22,13 @@ jobs:
       EXCLUDED_AUTHOR: "github-actions[bot]"
 
     steps:
-      - name: Get PR NUMBER if triggered on Push
-        if: github.event_name == 'push'
+      - name: Get PR NUMBER if triggered on 'pull_request_review'
+        if: github.event_name == 'pull_request_review'
         run: |
-          echo "Fetching PRs associated with commit $GITHUB_SHA"
-          PR_NUMBER=$(curl -s -H "Authorization: token $TOKEN" \
-            "https://api.github.com/repos/$REPO/commits/${GITHUB_SHA}/pulls" | \
-            jq '.[0].number')
+          PR_NUMBER=${{ github.event.pull_request.number }}
           echo "PR Number: $PR_NUMBER"
           echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_ENV
+          
       - name: Get PR SHA and Check Old Run
         id: get_sha_and_old_run
         run: |
