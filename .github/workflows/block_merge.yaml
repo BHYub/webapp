@@ -25,8 +25,8 @@ jobs:
         if: github.event_name == 'push'
         run: |
           echo "Fetching PRs associated with commit $GITHUB_SHA"
-          PR_NUMBER=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/commits/${GITHUB_SHA}/pulls" | \
+          PR_NUMBER=$(curl -s -H "Authorization: token $TOKEN" \
+            "https://api.github.com/repos/$REPO/commits/${GITHUB_SHA}/pulls" | \
             jq '.[0].number')
           echo "PR Number: $PR_NUMBER"
           echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_ENV
