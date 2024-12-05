@@ -50,6 +50,8 @@ jobs:
            "tree": "'"$PR_HEAD"'",
            "parents": ["'"$PR_HEAD"'"]
           }' | jq -r .sha)
+          echo "Created Empty Commit SHA: $EMPTY_COMMIT"
+
 
           # Update the reference of the PR branch
           curl -s -X PATCH -H "Authorization: token $TOKEN" \
