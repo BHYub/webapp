@@ -47,8 +47,8 @@ jobs:
           "https://api.github.com/repos/$REPO/git/commits" \
           -d '{
            "message": "Reset checks",
-           "tree": "'"$PR_HEAD"'",
-           "parents": ["'"$PR_HEAD"'"]
+           "tree": "$PR_HEAD",
+           "parents": ["$PR_HEAD"]
           }' | jq -r .sha)
           echo "Created Empty Commit SHA: $EMPTY_COMMIT"
 
