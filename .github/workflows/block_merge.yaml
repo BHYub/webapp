@@ -32,8 +32,12 @@ jobs:
         run: |
           # Get the current HEAD of the PR branch
           PR_HEAD=$(curl -s -H "Authorization: token $TOKEN" \
-          "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER"\
+          "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" \
           | jq -r .head.sha)
+          if [[ -z "$PR_HEAD" || ${#PR_HEAD} -ne 40 ]]; then
+          echo "Failed to retrieve PR HEAD SHA."
+           exit 1
+          fi
           # Create a new empty commit
           EMPTY_COMMIT=$(curl -s -X POST -H "Authorization: token $TOKEN" \
           -H "Accept: application/vnd.github.v3+json" \
