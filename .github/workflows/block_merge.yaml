@@ -29,8 +29,8 @@ jobs:
           echo "PR Number: $PR_NUMBER"
           echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_ENV
           
-      - name: Get PR SHA and Check Old Run
-        id: get_sha_and_old_run
+      - name: Get PR SHA and List Old Check Runs
+        id: get_sha_and_check_runs
         run: |
           echo "$PR_NUMBER"
           PR_SHA=$(curl -s -H "Authorization: token $TOKEN" \
@@ -40,10 +40,23 @@ jobs:
           CHECK_RUNS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/${REPO}/commits/${PR_SHA}/check-runs")
           
-          OLD_CHECK_RUN_ID=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "check-shortcut-link") | .id'| sort -rn | tail -n1)
-          echo "Old Check Run ID: $OLD_CHECK_RUN_ID"
-          echo "old_check_run_id=$OLD_CHECK_RUN_ID" >> $GITHUB_OUTPUT
+          OLD_CHECK_RUN_IDS=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "check-shortcut-link") | .id')
+          echo "Old Check Run IDs:"
+          echo "$OLD_CHECK_RUN_IDS"
+          echo "old_check_run_ids=$OLD_CHECK_RUN_IDS" >> $GITHUB_OUTPUT
           echo "pr_sha=$PR_SHA" >> $GITHUB_OUTPUT
+
+      - name: Delete Old Check Runs
+        if: steps.get_sha_and_check_runs.outputs.old_check_run_ids != ''
+        run: |
+          for CHECK_RUN_ID in ${{ steps.get_sha_and_check_runs.outputs.old_check_run_ids }}; do
+            echo "Deleting Check Run ID: $CHECK_RUN_ID"
+            curl -X DELETE \
+              -H "Authorization: token $TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/repos/${REPO}/check-runs/$CHECK_RUN_ID"
+          done
+
 
       - name: Get PR Details
         id: get_pr_details
