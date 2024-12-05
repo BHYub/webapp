@@ -49,6 +49,7 @@ jobs:
       - name: Get PR Details
         id: get_pr_details
         run: |
+          echo "$steps.get_sha_and_check_runs.outputs.old_check_run_id"
           PR_DETAILS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER")
           PR_AUTHOR=$(echo "$PR_DETAILS" | jq -r .user.login)   # Get the author of the PR
