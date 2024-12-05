@@ -108,25 +108,4 @@ jobs:
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Check Run
-        run: |
-          CHECK_RUN_CREATE_URL="https://api.github.com/repos/${REPO}/check-runs"
-          curl -X POST \
-            -H "Authorization: token $TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "$CHECK_RUN_CREATE_URL" \
-            -d '{
-              "name": "check-shortcut-link",
-              "head_sha": "'"${{ steps.get_sha_and_check_runs.outputs.pr_sha }}"'",
-              "status": "completed",
-              "conclusion": "'"${{ steps.get_comments_and_verify.outputs.status }}"'",
-              "output": {
-                "title": "'"${{ github.workflow }}"'",
-                "summary": "'"${{ steps.get_comments_and_verify.outputs.status }}"' for this PR."
-              }
-            }'
-          # Exit with failure if status is failure
-          if [[ "${{ steps.get_comments_and_verify.outputs.status }}" == 'failure' ]]; then
-            echo "This PR does not have a linked Shortcut story."
-            exit 1
-          fi
+
