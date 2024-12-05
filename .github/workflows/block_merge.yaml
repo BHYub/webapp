@@ -93,7 +93,7 @@ jobs:
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
       - name: Update Check Run Status
-        if: steps.get_sha_and_check_runs.outputs.old_check_run_id != 'null' && steps.get_sha_and_check_runs.outputs.old_check_run_id != ''
+        if: steps.get_sha_and_check_runs.outputs.old_check_run_id != '[]'  && steps.get_sha_and_check_runs.outputs.old_check_run_id != ''
         run: |
           IDS=$(echo '${{ steps.get_sha_and_check_runs.outputs.old_check_run_ids }}' | jq -r '.[]')
           for CHECK_RUN_ID in ${IDS}; do
@@ -113,7 +113,7 @@ jobs:
             exit 1
           fi
       - name: Create Check Run
-        if: steps.get_sha_and_check_runs.outputs.old_check_run_id == 'null' || steps.get_sha_and_check_runs.outputs.old_check_run_id == ''
+        if: steps.get_sha_and_check_runs.outputs.old_check_run_id == '[]'  || steps.get_sha_and_check_runs.outputs.old_check_run_id == ''
         run: |
           CHECK_RUN_CREATE_URL="https://api.github.com/repos/${REPO}/check-runs"
           curl -X POST \
