@@ -45,17 +45,7 @@ jobs:
           echo "$OLD_CHECK_RUN_IDS"
           echo "old_check_run_ids=$(echo $OLD_CHECK_RUN_IDS | jq -R -s -c 'split("\n")')" >> $GITHUB_OUTPUT
           echo "pr_sha=$PR_SHA" >> $GITHUB_OUTPUT
-      - name: Delete Old Check Runs
-        if: steps.get_sha_and_check_runs.outputs.old_check_run_ids != ''
-        run: |
-          IDS=$(echo '${{ steps.get_sha_and_check_runs.outputs.old_check_run_ids }}' | jq -r '.[]')
-          for CHECK_RUN_ID in ${IDS}; do
-            echo "Deleting Check Run ID: $CHECK_RUN_ID"
-            curl -X DELETE \
-              -H "Authorization: token $TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              "https://api.github.com/repos/${REPO}/check-runs/$CHECK_RUN_ID"
-          done
+   
       - name: Get PR Details
         id: get_pr_details
         run: |
@@ -105,7 +95,9 @@ jobs:
       - name: Update Check Run Status
         if: steps.get_sha_and_check_runs.outputs.old_check_run_id != 'null' && steps.get_sha_and_check_runs.outputs.old_check_run_id != ''
         run: |
-          CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/${{ steps.get_sha_and_check_runs.outputs.old_check_run_id }}"
+          IDS=$(echo '${{ steps.get_sha_and_check_runs.outputs.old_check_run_ids }}' | jq -r '.[]')
+          for CHECK_RUN_ID in ${IDS}; do
+          CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/${CHECK_RUN_ID}"
           curl -X PATCH \
             -H "Authorization: token $TOKEN" \
             -H "Accept: application/vnd.github.v3+json" \
@@ -114,6 +106,7 @@ jobs:
               "status": "completed",
               "conclusion": "'"${{ steps.get_comments_and_verify.outputs.status }}"'"
             }'
+            done
           # Exit with failure if status is failure
           if [[ "${{ steps.get_comments_and_verify.outputs.status }}" == 'failure' ]]; then
             echo "This PR does not have a linked Shortcut story."
