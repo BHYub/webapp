@@ -43,7 +43,7 @@ jobs:
           OLD_CHECK_RUN_IDS=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "check-shortcut-link") | .id')
           echo "Old Check Run IDs:"
           echo "$OLD_CHECK_RUN_IDS"
-          echo "old_check_run_ids=$(echo $OLD_CHECK_RUN_IDS | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+          echo "old_check_run_ids=$(echo $OLD_CHECK_RUN_IDS | jq -R -s -c 'split("\n")')" >> $GITHUB_OUTPUT
           echo "pr_sha=$PR_SHA" >> $GITHUB_OUTPUT
           
       - name: Delete Old Check Runs
