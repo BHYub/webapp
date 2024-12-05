@@ -34,10 +34,13 @@ jobs:
           PR_HEAD=$(curl -s -H "Authorization: token $TOKEN" \
           "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" \
           | jq -r .head.sha)
-          if [[ -z "$PR_HEAD" || ${#PR_HEAD} -ne 40 ]]; then
-          echo "Failed to retrieve PR HEAD SHA."
-           exit 1
-          fi
+          
+          # Get the PR branch name
+          PR_BRANCH=$(curl -s -H "Authorization: token $TOKEN" \
+          "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" \
+          | jq -r .head.ref)
+
+          echo "Using PR HEAD SHA: $PR_HEAD"
           # Create a new empty commit
           EMPTY_COMMIT=$(curl -s -X POST -H "Authorization: token $TOKEN" \
           -H "Accept: application/vnd.github.v3+json" \
@@ -51,7 +54,7 @@ jobs:
           # Update the reference of the PR branch
           curl -s -X PATCH -H "Authorization: token $TOKEN" \
           -H "Accept: application/vnd.github.v3+json" \
-          "https://api.github.com/repos/$REPO/git/refs/heads/${{ github.head_ref }}" \
+          "https://api.github.com/repos/$REPO/git/refs/heads/$PR_BRANCH"\
           -d '{
           "sha": "'"$EMPTY_COMMIT"'",
           "force": true
