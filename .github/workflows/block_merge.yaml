@@ -43,19 +43,20 @@ jobs:
           OLD_CHECK_RUN_IDS=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "check-shortcut-link") | .id')
           echo "Old Check Run IDs:"
           echo "$OLD_CHECK_RUN_IDS"
-          echo "old_check_run_ids=$OLD_CHECK_RUN_IDS" >> $GITHUB_OUTPUT
+          echo "old_check_run_ids=$(echo $OLD_CHECK_RUN_IDS | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
           echo "pr_sha=$PR_SHA" >> $GITHUB_OUTPUT
-
+          
       - name: Delete Old Check Runs
         if: steps.get_sha_and_check_runs.outputs.old_check_run_ids != ''
         run: |
-          for CHECK_RUN_ID in ${{ steps.get_sha_and_check_runs.outputs.old_check_run_ids }}; do
+          IDS=$(echo '${{ steps.get_sha_and_check_runs.outputs.old_check_run_ids }}' | jq -r '.[]')
+          for CHECK_RUN_ID in $IDS; do
             echo "Deleting Check Run ID: $CHECK_RUN_ID"
             curl -X DELETE \
               -H "Authorization: token $TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
               "https://api.github.com/repos/${REPO}/check-runs/$CHECK_RUN_ID"
-          done
+           done
 
 
       - name: Get PR Details
@@ -107,26 +108,7 @@ jobs:
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
 
-      - name: Update Check Run Status
-        if: steps.get_sha_and_old_run.outputs.old_check_run_id != 'null' && steps.get_sha_and_old_run.outputs.old_check_run_id != ''
-        run: |
-          CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/${{ steps.get_sha_and_old_run.outputs.old_check_run_id }}"
-          curl -X PATCH \
-            -H "Authorization: token $TOKEN" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "$CHECK_RUN_UPDATE_URL" \
-            -d '{
-              "status": "completed",
-              "conclusion": "'"${{ steps.get_comments_and_verify.outputs.status }}"'"
-            }'
-          # Exit with failure if status is failure
-          if [[ "${{ steps.get_comments_and_verify.outputs.status }}" == 'failure' ]]; then
-            echo "This PR does not have a linked Shortcut story."
-            exit 1
-          fi
-
       - name: Create Check Run
-        if: steps.get_sha_and_old_run.outputs.old_check_run_id == 'null' || steps.get_sha_and_old_run.outputs.old_check_run_id == ''
         run: |
           CHECK_RUN_CREATE_URL="https://api.github.com/repos/${REPO}/check-runs"
           curl -X POST \
@@ -135,7 +117,7 @@ jobs:
             "$CHECK_RUN_CREATE_URL" \
             -d '{
               "name": "check-shortcut-link",
-              "head_sha": "'"${{ steps.get_sha_and_old_run.outputs.pr_sha }}"'",
+              "head_sha": "'"${{ steps.get_sha_and_check_runs.outputs.pr_sha }}"'",
               "status": "completed",
               "conclusion": "'"${{ steps.get_comments_and_verify.outputs.status }}"'",
               "output": {
