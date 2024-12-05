@@ -40,7 +40,7 @@ jobs:
           CHECK_RUNS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/${REPO}/commits/${PR_SHA}/check-runs")
           
-          OLD_CHECK_RUN_ID=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "check-shortcut-link") | .id')
+          OLD_CHECK_RUN_ID=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "check-shortcut-link") | .id'| sort -rn | head -n1)
           echo "Old Check Run ID: $OLD_CHECK_RUN_ID"
           echo "old_check_run_id=$OLD_CHECK_RUN_ID" >> $GITHUB_OUTPUT
           echo "pr_sha=$PR_SHA" >> $GITHUB_OUTPUT
