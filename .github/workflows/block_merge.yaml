@@ -25,30 +25,30 @@ jobs:
       - name: Reset PR Checks
         run: |
           # Get the current HEAD of the PR branch
-        PR_HEAD=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-        "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" \
-       | jq -r .head.sha)
+          PR_HEAD=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}" \
+          | jq -r .head.sha)
           # Create a new empty commit
-      EMPTY_COMMIT=$(curl -s -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-      -H "Accept: application/vnd.github.v3+json" \
-      "https://api.github.com/repos/${{ github.repository }}/git/commits" \
-      -d '{
-        "message": "Reset checks",
-        "tree": "'"$PR_HEAD"'",
-        "parents": ["'"$PR_HEAD"'"]
-      }' | jq -r .sha)
+          EMPTY_COMMIT=$(curl -s -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/${{ github.repository }}/git/commits" \
+          -d '{
+           "message": "Reset checks",
+           "tree": "'"$PR_HEAD"'",
+           "parents": ["'"$PR_HEAD"'"]
+          }' | jq -r .sha)
 
-    # Update the reference of the PR branch
-    curl -s -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-      -H "Accept: application/vnd.github.v3+json" \
-      "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/${{ github.head_ref }}" \
-      -d '{
-        "sha": "'"$EMPTY_COMMIT"'",
-        "force": true
-      }'
+          # Update the reference of the PR branch
+          curl -s -X PATCH -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+          -H "Accept: application/vnd.github.v3+json" \
+          "https://api.github.com/repos/${{ github.repository }}/git/refs/heads/${{ github.head_ref }}" \
+          -d '{
+          "sha": "'"$EMPTY_COMMIT"'",
+          "force": true
+          }'
 
-    echo "PR checks have been reset."      
-    echo "PR_SHA=$EMPTY_COMMIT" >> $GITHUB_ENV
+          echo "PR checks have been reset."      
+          echo "PR_SHA=$EMPTY_COMMIT" >> $GITHUB_ENV
  
       - name: Get PR Details
         id: get_pr_details
