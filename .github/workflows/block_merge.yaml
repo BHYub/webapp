@@ -3,16 +3,16 @@ name: Block Merge Without Shortcut Link
 permissions:
   checks: write
 on:
-  push: 
+  pull_request:
+    types: [synchronize] # To cover the case when update branch clears checks
   issue_comment:
-    types: [created] # Triggers on adding a comment
+    types: [created] # Triggers on adding a comment 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.issue.number }}
   cancel-in-progress: true
 
 jobs:
   check-shortcut-link:
-    if: "!startsWith(github.event.head_commit.message, 'Merge')"
     runs-on: ubuntu-latest
     env:
       REPO: ${{ github.repository }}
@@ -22,20 +22,16 @@ jobs:
       EXCLUDED_AUTHOR: "github-actions[bot]"
 
     steps:
-      - name: Get PR NUMBER if triggered on Push
-        if: github.event_name == 'push'
+      - name: Get PR NUMBER if triggered on 'pull_request'
+        if: github.event_name == 'pull_request'
         run: |
-          echo "Fetching PRs associated with commit $GITHUB_SHA"
-          PR_NUMBER=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/commits/${GITHUB_SHA}/pulls" | \
-            jq '.[0].number')
+          PR_NUMBER=${{ github.event.pull_request.number }}
           echo "PR Number: $PR_NUMBER"
           echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_ENV
           
       - name: Get PR SHA and List Old Check Runs
         id: get_sha_and_check_runs
         run: |
-          echo "$PR_NUMBER"
           PR_SHA=$(curl -s -H "Authorization: token $TOKEN" \
               "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" | jq -r .head.sha)
           echo "Using PR SHA: $PR_SHA" # Debug
