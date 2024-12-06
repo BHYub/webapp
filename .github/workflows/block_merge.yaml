@@ -41,7 +41,7 @@ jobs:
           
           OLD_CHECK_RUN_ID=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "check-shortcut-link") | .id')
           echo "Old Check Run ID: $OLD_CHECK_RUN_ID"
-          echo "old_check_run_id=$(echo $OLD_CHECK_RUN_IDS | jq -R -s -c 'split("\n")')" >> $GITHUB_OUTPUT # In case of multiple checks 
+          echo "old_check_run_id=$(echo $OLD_CHECK_RUN_ID | jq -R -s -c 'split("\n")')" >> $GITHUB_OUTPUT # In case of multiple checks 
           echo "pr_sha=$PR_SHA" >> $GITHUB_OUTPUT
 
       - name: Get PR Details
