@@ -23,14 +23,14 @@ jobs:
 
     steps:
       - name: Get PR NUMBER if triggered on 'pull_request'
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' # Triggers have their proper ways to get some parameters eg(PR_NUMBER) 
         run: |
           PR_NUMBER=${{ github.event.pull_request.number }}
           echo "PR Number: $PR_NUMBER"
           echo "PR_NUMBER=${PR_NUMBER}" >> $GITHUB_ENV
-          
-      - name: Get PR SHA and List Old Check Runs
-        id: get_sha_and_check_runs
+
+      - name: Get PR SHA and Check Old Run
+        id: get_sha_and_old_run
         run: |
           PR_SHA=$(curl -s -H "Authorization: token $TOKEN" \
               "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER" | jq -r .head.sha)
@@ -39,16 +39,14 @@ jobs:
           CHECK_RUNS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/${REPO}/commits/${PR_SHA}/check-runs")
           
-          OLD_CHECK_RUN_IDS=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "check-shortcut-link") | .id')
-          echo "Old Check Run IDs:"
-          echo "$OLD_CHECK_RUN_IDS"
-          echo "old_check_run_ids=$(echo $OLD_CHECK_RUN_IDS | jq -R -s -c 'split("\n")')" >> $GITHUB_OUTPUT
+          OLD_CHECK_RUN_ID=$(echo "$CHECK_RUNS" | jq -r '.check_runs[] | select(.name == "check-shortcut-link") | .id')
+          echo "Old Check Run ID: $OLD_CHECK_RUN_ID"
+          echo "old_check_run_id=$(echo $OLD_CHECK_RUN_IDS | jq -R -s -c 'split("\n")')" >> $GITHUB_OUTPUT # In case of multiple checks 
           echo "pr_sha=$PR_SHA" >> $GITHUB_OUTPUT
-   
+
       - name: Get PR Details
         id: get_pr_details
         run: |
-         echo '${{ steps.get_sha_and_check_runs.outputs.old_check_run_ids }}' 
           PR_DETAILS=$(curl -s -H "Authorization: token $TOKEN" \
             "https://api.github.com/repos/$REPO/pulls/$PR_NUMBER")
           PR_AUTHOR=$(echo "$PR_DETAILS" | jq -r .user.login)   # Get the author of the PR
@@ -75,10 +73,12 @@ jobs:
           while :; do
             RESPONSE=$(curl -s -H "Authorization: token $TOKEN" \
               "https://api.github.com/repos/$REPO/issues/$PR_NUMBER/comments?per_page=$PER_PAGE&page=$PAGE")
+
             # Break if no more comments are returned
             if [[ $(echo "$RESPONSE" | jq '. | length') -eq 0 ]]; then
               break
             fi
+
             COMMENTS+="$RESPONSE"
             ((PAGE++))
           done
@@ -92,10 +92,12 @@ jobs:
             echo "This PR does not have a linked Shortcut story."
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
+
       - name: Update Check Run Status
-        if: steps.get_sha_and_check_runs.outputs.old_check_run_ids != '["",""]'   && steps.get_sha_and_check_runs.outputs.old_check_run_ids != ''
+        if: steps.get_sha_and_old_run.outputs.old_check_run_id != '["",""]' && steps.get_sha_and_old_run.outputs.old_check_run_id != ''
         run: |
-          IDS=$(echo '${{ steps.get_sha_and_check_runs.outputs.old_check_run_ids }}' | jq -r '.[]')
+          IDS=$(echo '${{ steps.get_sha_and_old_run.outputs.old_check_run_id }}' | jq -r '.[]')
+          # The loop here is to update all the checks if there are multiple ones
           for CHECK_RUN_ID in ${IDS}; do
           CHECK_RUN_UPDATE_URL="https://api.github.com/repos/${REPO}/check-runs/${CHECK_RUN_ID}"
           curl -X PATCH \
@@ -112,8 +114,9 @@ jobs:
             echo "This PR does not have a linked Shortcut story."
             exit 1
           fi
+
       - name: Create Check Run
-        if: steps.get_sha_and_check_runs.outputs.old_check_run_ids == '["",""]'   || steps.get_sha_and_check_runs.outputs.old_check_run_ids == ''
+        if: steps.get_sha_and_old_run.outputs.old_check_run_id == '["",""]' || steps.get_sha_and_old_run.outputs.old_check_run_id == ''
         run: |
           CHECK_RUN_CREATE_URL="https://api.github.com/repos/${REPO}/check-runs"
           curl -X POST \
@@ -122,8 +125,7 @@ jobs:
             "$CHECK_RUN_CREATE_URL" \
             -d '{
               "name": "check-shortcut-link",
-              "head_sha": "'"${{ steps.get_sha_and_check_runs.outputs.pr_sha }}"'",
-              "head_sha": "'"${{ steps.get_sha_and_check_runs.outputs.pr_sha }}"'",
+              "head_sha": "'"${{ steps.get_sha_and_old_run.outputs.pr_sha }}"'",
               "status": "completed",
               "conclusion": "'"${{ steps.get_comments_and_verify.outputs.status }}"'",
               "output": {
